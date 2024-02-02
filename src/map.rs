@@ -10,8 +10,11 @@ use std::default;
 pub enum Pixel {
     Air,
     Sand,
+    Dirt,
+    Stone,
     Water,
     Fire,
+    Grass,
     Wood,
     Bedrock,
     Smoke,
@@ -32,6 +35,9 @@ impl Pixel {
             Pixel::Wood => Color::from_rgba(139, 107, 59, 255),
             Pixel::Smoke => Color::from_rgba(190,190,190, 255),
             Pixel::Water => Color::from_rgba(35,69,190, 255),
+            Pixel::Dirt => Color::from_rgba(155,118,83, 255),
+            Pixel::Stone => Color::from_rgba(168,169,173, 255),
+            Pixel::Grass => Color::from_rgba(113,169,44, 255),
             Pixel::Bedrock => Color::from_rgba(fastrand::u8(0..255), fastrand::u8(0..255), fastrand::u8(0..255), 255),
         }
     }
@@ -44,7 +50,10 @@ impl Pixel {
             Pixel::Wood => Pixel::Smoke,
             Pixel::Smoke => Pixel::Water,
             Pixel::Water => Pixel::Bedrock,
-            Pixel::Bedrock => Pixel::Air
+            Pixel::Bedrock => Pixel::Stone,
+            Pixel::Stone => Pixel::Dirt,
+            Pixel::Dirt => Pixel::Grass,
+            Pixel::Grass => Pixel::Air,
         }
 
     }
@@ -54,12 +63,15 @@ impl Pixel {
     }
     pub fn fluid_density(&self) -> Option<i32> {
         match self {
-            Pixel::Air => Some(2),
-            Pixel::Sand => Some(20),
+            Pixel::Air => Some(3),
+            Pixel::Sand|Pixel::Dirt => Some(30),
             Pixel::Smoke => Some(1),
-            Pixel::Water => Some(5),
-            Pixel::Fire => Some(1),
-            Pixel::Bedrock | Pixel::Wood => None,
+            Pixel::Water => Some(15),
+            Pixel::Fire => Some(2),
+            Pixel::Bedrock
+            |Pixel::Wood 
+            |Pixel::Stone
+            |Pixel::Grass => None ,
         }
     }
 

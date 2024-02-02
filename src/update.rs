@@ -51,8 +51,10 @@ impl Map {
         let u_row = row as usize;
         let u_col = col as usize;
 
-        if self.grid[(u_row+1,u_col)].less_dense(self.grid[(u_row,u_col)]) && self.grid[(u_row,u_col)].fluid_density().is_some() {
-            if !self.grid[(u_row+1,u_col)].is_airy() || num > 75 {
+        let is_less_dense = self.grid[(u_row+1,u_col)].less_dense(self.grid[(u_row,u_col)]);
+
+        if is_less_dense && self.grid[(u_row,u_col)].fluid_density().is_some() {
+            if !self.grid[(u_row,u_col)].is_airy() || num > 85 - self.grid[(u_row,u_col)].fluid_density().unwrap_or(85) as i8 {
                 self.swap_px((row, col), (row + 1, col));
                 self.update_texture_px.push((row as usize, col as usize));
                 self.update_texture_px.push((row as usize +1, col as usize));
@@ -60,10 +62,11 @@ impl Map {
         }
 
         match self.grid[(u_row,u_col)] {
+
             Pixel::Sand  => {
                 if self.grid[(u_row+1,u_col)] == Pixel::Sand {
                     let side = fastrand::choice([0,2]).unwrap_or(1);
-                    if self.grid[(u_row+1,u_col-1+side)].is_airy() {
+                    if self.grid[(u_row+1,u_col-1+side)].less_dense(Pixel::Sand) {
                         self.swap_px((row, col), (row + 1, col + side as i32 -1));
                         self.update_texture_px.push((row as usize, col as usize));
                         self.update_texture_px.push((row as usize+1, col as usize + side -1));
@@ -71,8 +74,23 @@ impl Map {
                 }
             }
 
+            Pixel::Dirt  => {
+                if self.grid[(u_row+1,u_col)] == Pixel::Dirt && self.grid[(u_row-1,u_col)] == Pixel::Dirt {
+                    let side = fastrand::choice([0,2]).unwrap_or(1);
+                    if self.grid[(u_row+1,u_col-1+side)].less_dense(Pixel::Dirt) {
+                        self.swap_px((row, col), (row + 1, col + side as i32 -1));
+                        self.update_texture_px.push((row as usize, col as usize));
+                        self.update_texture_px.push((row as usize+1, col as usize + side -1));
+                    }
+                }
+                if self.grid[(u_row-1,u_col)] == Pixel::Air {
+                    self.grid[(u_row,u_col)] = Pixel::Grass;
+                    self.update_texture_px.push((row as usize, col as usize));
+                }
+            }
+
             Pixel::Water => {
-                if !(self.grid[(u_row+1,u_col)].less_dense(self.grid[(u_row,u_col)])) {
+                if !(is_less_dense) {
                     let side = fastrand::choice([0,2]).unwrap_or(1);
                     if self.grid[(u_row,u_col-1+side)].is_airy() {
                         self.swap_px((row, col), (row, col + side as i32 -1));
@@ -115,17 +133,19 @@ impl Map {
                
             }
             Pixel::Smoke => {
-                if num <= 4 && self.grid[(u_row-1,u_col)].is_airy() {
-                    self.swap_px((row, col), (row - 1, col));
-                    self.update_texture_px.push((row as usize, col as usize));
-                    self.update_texture_px.push((row as usize -1, col as usize));
-                }
-                if num > 80 {
+                if num > 98 {
                     self.grid[(u_row,u_col)] = Pixel::Air;
                     self.update_texture_px.push((row as usize, col as usize));
                 }
             }
             Pixel::Air => {},
+            Pixel::Stone => {},
+            Pixel::Grass => {
+                if !self.grid[(u_row-1,u_col)].is_airy() || self.grid[(u_row+1,u_col)].is_airy() {
+                    self.grid[(u_row,u_col)] = Pixel::Dirt;
+                    self.update_texture_px.push((row as usize, col as usize));
+                }
+            },
             Pixel::Bedrock => {
                 self.update_texture_px.push((row as usize, col as usize));
             }
