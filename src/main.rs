@@ -1,83 +1,108 @@
+use std::borrow::BorrowMut;
+
+use entity::EntityType;
 use grid::*;
 
 mod map;
 mod update;
+mod entity;
+mod player;
+mod cam;
 
 
-use macroquad::prelude::*;
+
+use macroquad::{prelude::*, ui::root_ui};
 use map::{Map, Pixel};
+use player::Player;
 
 #[macroquad::main("BasicShapes")]
 async fn main() {
+    
 
-    let mut map = Map::new_square(100);
+    
+    let mut player = Player::default();
+    
+    
+    let mut map = Map::new_square(1000);
     map.update_image();
     let texture: Texture2D = Texture2D::from_image(&map.image);
     texture.set_filter(FilterMode::Nearest);
     map.make_square(map::Pixel::Water);
     // map.make_log();
-
-    let mut paused = true;
+    map.spawn_entity(EntityType::Tree, 50.0, 10.0);
+    map.spawn_entity(EntityType::Fish, 100.0, 100.0);
+    
+    let mut paused = false;
     
     // let texture_heatmap: Texture2D = Texture2D::from_image(&map.heatmap);
     
     let mut draw = Pixel::Air;
     let mut hover = None;
-
+    
     loop {
+        set_camera(&player.cam());
         clear_background(WHITE);
-
+        
         if !paused {
             map.update_state();
+            map.entities.retain_mut(|x| x.update(&(map.grid)));
         }
+        player.update();
 
         match get_char_pressed() {
             Some(' ') => {paused = !paused},
             Some('c') => {map.make_square(map::Pixel::Air);},
-            Some('s') => {map.update_state();},
-            Some('d') => {draw = draw.cycle()},
+            Some('t') => {map.update_state();},
+            Some('f') => {draw = draw.cycle()},
+            Some('g') => {map.gen_terrain()},
             _ => {}
         }
-        
-        let (mut x,mut y) = mouse_position();
-        x=x/600.0;
-        y=y/600.0;
-        let row = ((map.size as f32 * y as f32) as usize).clamp(2 , map.size as usize -2);
-        let col = ((map.size as f32 * x ) as usize).clamp(2 , map.size as usize -2);
-        if x<=1.0 && y<=1.0 {
+        let mouse = mouse_position();
+
+        // real point point in world
+        let pt = player.cam().screen_to_world(Vec2::new(mouse.0, mouse.1));
+
+        let row = (pt.y as usize).clamp(2 , map.size as usize -2);
+        let col = (pt.x as usize).clamp(2 , map.size as usize -2);
+        if pt.y as usize == row && pt.x as usize == col || true {
             hover = Some(map.grid[(row, col)]);
             if is_mouse_button_down(MouseButton::Left) {
-                map.grid[(row, col)] = draw;
                 for x in 0..3 {
-                for y in 0..3 {
+                    for y in 0..3 {
+                    map.grid[(row +y -1, col + x -1)] = draw;
                 map.update_texture_px.push((row +y -1, col + x -1));
                 }
                 }
-                
             }
         }
 
         if !map.update_texture_px.is_empty() {
             map.update_image();
-            // texture.update_part(&image, x_offset, y_offset, width, height);
             texture.update(&map.image);
             map.update_texture_px = vec![];
-            // texture_heatmap.update(&map.heatmap);
         }
 
-
-
-
+        
+        
         draw_texture_ex(&texture, 0.0, 0.0, WHITE,  DrawTextureParams { 
-            dest_size: Some(Vec2::new(600.0, 600.0)),
             ..Default::default()});
-        // draw_texture_ex(&texture_heatmap, 0.0, 0.0, Color { r: 1.0, g: 1.0, b: 1.0, a: 0.3 },  DrawTextureParams { 
-        //     dest_size: Some(Vec2::new(512.0, 512.0)),
-        //     ..Default::default()});
 
-        draw_text(&format!("fps: {}", get_fps()), 10.0, 20.0, 20.0, BLACK);
-        draw_text(&format!("{:?}", hover), 10.0, 50.0, 20.0, BLACK);
-        draw_text(&format!("Using {:?}", draw), 10.0, 80.0, 20.0, BLACK);
+        
+        for e in &map.entities {
+            draw_texture_ex(&e.texture, e.x, e.y - e.height +1.0, WHITE,  DrawTextureParams { 
+                dest_size: Some(Vec2::new(e.width, e.height)),
+                ..Default::default()});
+        }
+
+        
+
+
+        
+        root_ui().label(None, &format!("fps: {}", get_fps()));
+        root_ui().label(None, &format!("{:?}", hover));
+        root_ui().label(None, &format!("Using {:?}", draw));
+
         next_frame().await
+
     }
 }

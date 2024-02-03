@@ -8,33 +8,14 @@ use crate::map::{Map, Pixel};
 
 impl Map {
     pub fn update_state(&mut self) {
-        for _ in 0..100000 {
+        for _ in 0..1000000 {
             let point = (fastrand::i32(2..self.size as i32-2),
             fastrand::i32(2..self.size as i32-2));
-            // for i in 0..0 {
-            //     let point2 = (fastrand::i32(2..self.size as i32-2),
-            //     fastrand::i32(2..self.size as i32-2));
-            //     if self.heatmap.get_pixel(point2.1 as u32, point2.0 as u32).a == 1.0 {
-            //         point = point2;
-            //     }
-            // }
             self.update_px(
                 point.0,
                 point.1,
             );
         }
-        // self.heatmap = Image::gen_image_color(self.size as u16, self.size as u16, WHITE);
-        // for (row, col) in &self.update_texture_px {
-        //     for x in 0..3 {
-        //         for y in 0..3 {
-        //             let x2 = (col + x).clamp(2, self.size as usize-1) as u32;
-        //             let y2 = (row + y).clamp(2, self.size as usize-1) as u32;
-        //             let px = self.heatmap.get_pixel(x2 -1, y2 -1);
-        //             self.heatmap.set_pixel(x2 -1, y2 -1, BLACK);
-        //         }
-        //     }
-        // }
-
     }
 
     pub fn swap_px(&mut self, a: (i32, i32), b: (i32, i32)) {

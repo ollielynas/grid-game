@@ -6,6 +6,10 @@ use macroquad::{
 };
 use std::default;
 
+use perlin2d::PerlinNoise2D;
+
+use crate::entity::{Entity, EntityType};
+
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum Pixel {
     Air,
@@ -29,7 +33,7 @@ impl Default for Pixel {
 impl Pixel {
     fn color(&self) -> Color {
         match self {
-            Pixel::Air => Color::from_rgba(250, 251, 255, 255),
+            Pixel::Air => Color::from_rgba(250, 251, 255, 0),
             Pixel::Sand => Color::from_rgba(207, 215, 157, 255),
             Pixel::Fire => Color::from_rgba(193, 84, 45, 255),
             Pixel::Wood => Color::from_rgba(139, 107, 59, 255),
@@ -89,10 +93,81 @@ pub struct Map {
     pub size: u32,
     pub update_texture_px: Vec<(usize, usize)>,
     pub image: Image,
+    pub entities: Vec<Entity>,
     // pub heatmap: Image,
 }
 
 impl Map {
+
+
+    pub fn gen_terrain(&mut self) {
+
+        self.entities = vec![];
+
+        self.make_square(Pixel::Air);
+        let new_grid = self.grid.clone();
+
+    let perlin = PerlinNoise2D::new(
+    // octaves - The amount of detail in Perlin noise.
+    5, 
+    // amplitude - The maximum absolute value that the Perlin noise can output.
+    10.0, 
+    // frequeny - The number of cycles per unit length that the Perlin noise outputs.
+    1.5, 
+    // persistence - A multiplier that determines how quickly the amplitudes diminish for each successive octave in a Perlin-noise function.
+    4.0, 
+    // lacunarity - A multiplier that determines how quickly the frequency increases for each successive octave in a Perlin-noise function.
+    2.0, 
+    // scale - A Tuple. A number that determines at what distance to view the noisemap.
+    (100.0, 100.0), 
+    // bias - Amount of change in Perlin noise. U
+    0.1, 
+    // seed - A value that changes the output of a coherent-noise function.
+    fastrand::i32(0..200)
+);
+    
+
+        for ((row, col), p) in new_grid.indexed_iter() {
+            if perlin.get_noise(col as f64, row as f64) > 0.0 {
+                self.grid[(row,col)] = Pixel::Dirt;
+                
+            }
+            if perlin.get_noise(col as f64, row as f64) > 50.0 {
+                
+                self.grid[(row,col)] = Pixel::Stone;
+            }
+            if perlin.get_noise(col as f64, row as f64) < -1000.0 {
+                self.grid[(row,col)] = Pixel::Water;
+                
+            }
+            self.update_texture_px.push((row, col));
+        }
+        for _ in 0..100 {self.update_state()}
+        for ((row, col), p) in new_grid.indexed_iter() {
+            let num = fastrand::u32(0..1000);
+            match self.grid[(col,row)] {
+                Pixel::Water => {
+                    if num < 60 {
+                        self.spawn_entity(EntityType::Fish, col as f32, row as f32);
+                    }
+                },
+                Pixel::Grass => {
+                    if num < 100 {
+                        self.spawn_entity(EntityType::Tree, row as f32, col as f32-1.0);
+                    }
+                },
+                |Pixel::Air
+                |Pixel::Sand
+                |Pixel::Dirt
+                |Pixel::Stone
+                |Pixel::Fire
+                |Pixel::Wood 
+                |Pixel::Bedrock 
+                |Pixel::Smoke => {}, 
+            }
+        }
+    } 
+
     pub fn new_square(size: usize) -> Map {
         let grid = Grid::from_vec((0..size.pow(2)).map(|_| Pixel::Air).collect(), size);
 
@@ -101,8 +176,13 @@ impl Map {
             size: size as u32,
             update_texture_px: vec![],
             image: Image::gen_image_color(size as u16, size as u16, WHITE),
+            entities: vec![],
             // heatmap: Image::gen_image_color(size as u16, size as u16, WHITE),
         };
+    }
+
+    pub fn spawn_entity(&mut self, entity_type:EntityType, x: f32,y:f32) {
+        self.entities.push(Entity::new(entity_type, x, y));
     }
 
     pub fn make_square(&mut self, pixel: Pixel) {
