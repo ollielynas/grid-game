@@ -23,14 +23,14 @@ async fn main() {
     let mut player = Player::default();
     
     
-    let mut map = Map::new_square(1000);
+    let mut map = Map::new_square(601);
     map.update_image();
     let texture: Texture2D = Texture2D::from_image(&map.image);
     texture.set_filter(FilterMode::Nearest);
     map.make_square(map::Pixel::Water);
     // map.make_log();
     map.spawn_entity(EntityType::Tree, 50.0, 10.0);
-    map.spawn_entity(EntityType::Fish, 100.0, 100.0);
+    map.spawn_entity(EntityType::Fish{air:20.0}, 100.0, 100.0);
     
     let mut paused = false;
     

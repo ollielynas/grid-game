@@ -121,6 +121,7 @@ impl Map {
             }
             Pixel::Air => {},
             Pixel::Stone => {},
+            Pixel::Gold => {},
             Pixel::Grass => {
                 if !self.grid[(u_row-1,u_col)].is_airy() || self.grid[(u_row+1,u_col)].is_airy() {
                     self.grid[(u_row,u_col)] = Pixel::Dirt;

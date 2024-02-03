@@ -22,6 +22,7 @@ pub enum Pixel {
     Wood,
     Bedrock,
     Smoke,
+    Gold,
 }
 
 impl Default for Pixel {
@@ -42,6 +43,7 @@ impl Pixel {
             Pixel::Dirt => Color::from_rgba(155,118,83, 255),
             Pixel::Stone => Color::from_rgba(168,169,173, 255),
             Pixel::Grass => Color::from_rgba(113,169,44, 255),
+            Pixel::Gold => Color::from_rgba(205, 127, 50, 255),
             Pixel::Bedrock => Color::from_rgba(fastrand::u8(0..255), fastrand::u8(0..255), fastrand::u8(0..255), 255),
         }
     }
@@ -57,7 +59,8 @@ impl Pixel {
             Pixel::Bedrock => Pixel::Stone,
             Pixel::Stone => Pixel::Dirt,
             Pixel::Dirt => Pixel::Grass,
-            Pixel::Grass => Pixel::Air,
+            Pixel::Grass => Pixel::Gold,
+            Pixel::Gold => Pixel::Air,
         }
 
     }
@@ -75,6 +78,7 @@ impl Pixel {
             Pixel::Bedrock
             |Pixel::Wood 
             |Pixel::Stone
+            |Pixel::Gold
             |Pixel::Grass => None ,
         }
     }
@@ -125,16 +129,61 @@ impl Map {
     // seed - A value that changes the output of a coherent-noise function.
     fastrand::i32(0..200)
 );
+    let perlin2 = PerlinNoise2D::new(
+    // octaves - The amount of detail in Perlin noise.
+    5, 
+    // amplitude - The maximum absolute value that the Perlin noise can output.
+    10.0, 
+    // frequeny - The number of cycles per unit length that the Perlin noise outputs.
+    1.5, 
+    // persistence - A multiplier that determines how quickly the amplitudes diminish for each successive octave in a Perlin-noise function.
+    4.0, 
+    // lacunarity - A multiplier that determines how quickly the frequency increases for each successive octave in a Perlin-noise function.
+    2.0, 
+    // scale - A Tuple. A number that determines at what distance to view the noisemap.
+    (500.0, 500.0), 
+    // bias - Amount of change in Perlin noise. U
+    0.1, 
+    // seed - A value that changes the output of a coherent-noise function.
+    fastrand::i32(0..200)
+);
+    let perlin3 = PerlinNoise2D::new(
+    // octaves - The amount of detail in Perlin noise.
+    5, 
+    // amplitude - The maximum absolute value that the Perlin noise can output.
+    10.0, 
+    // frequeny - The number of cycles per unit length that the Perlin noise outputs.
+    1.5, 
+    // persistence - A multiplier that determines how quickly the amplitudes diminish for each successive octave in a Perlin-noise function.
+    4.0, 
+    // lacunarity - A multiplier that determines how quickly the frequency increases for each successive octave in a Perlin-noise function.
+    2.0, 
+    // scale - A Tuple. A number that determines at what distance to view the noisemap.
+    (60.0, 60.0), 
+    // bias - Amount of change in Perlin noise. U
+    0.1, 
+    // seed - A value that changes the output of a coherent-noise function.
+    fastrand::i32(0..200)
+);
     
 
         for ((row, col), p) in new_grid.indexed_iter() {
-            if perlin.get_noise(col as f64, row as f64) > 0.0 {
+            if perlin.get_noise(col as f64, row as f64) > -10.0 {
+                if perlin2 .get_noise(col as f64, row as f64) > 100.0 {
+                    self.grid[(row,col)] = Pixel::Sand;
+
+                }else {
                 self.grid[(row,col)] = Pixel::Dirt;
-                
+                }
             }
-            if perlin.get_noise(col as f64, row as f64) > 50.0 {
+            if perlin.get_noise(col as f64, row as f64) > 80.0 {
                 
+                if perlin3.get_noise(col as f64, row as f64) > 1200.0 {
+                    self.grid[(row,col)] = Pixel::Gold;
+
+                }else {
                 self.grid[(row,col)] = Pixel::Stone;
+                }
             }
             if perlin.get_noise(col as f64, row as f64) < -1000.0 {
                 self.grid[(row,col)] = Pixel::Water;
@@ -142,13 +191,13 @@ impl Map {
             }
             self.update_texture_px.push((row, col));
         }
-        for _ in 0..100 {self.update_state()}
+        for _ in 0..10 {self.update_state()}
         for ((row, col), p) in new_grid.indexed_iter() {
             let num = fastrand::u32(0..1000);
             match self.grid[(col,row)] {
                 Pixel::Water => {
-                    if num < 60 {
-                        self.spawn_entity(EntityType::Fish, col as f32, row as f32);
+                    if num < 10 {
+                        self.spawn_entity(EntityType::Fish{air:20.0}, row as f32, col as f32);
                     }
                 },
                 Pixel::Grass => {
@@ -161,6 +210,7 @@ impl Map {
                 |Pixel::Dirt
                 |Pixel::Stone
                 |Pixel::Fire
+                |Pixel::Gold
                 |Pixel::Wood 
                 |Pixel::Bedrock 
                 |Pixel::Smoke => {}, 
