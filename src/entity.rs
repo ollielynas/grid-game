@@ -53,11 +53,11 @@ impl Entity {
             },
             EntityType::Soul => {
                 self.y -= 10.0*delta;
-                if self.y < 0.0 {
+                if self.y <= 2.0 {
                     return false;
                 }
             },
-            EntityType::Fish{mut air} => {
+            EntityType::Fish{air} => {
 
                 if pixel.is_airy() {
                     self.entity_type = EntityType::Fish { air: air-delta*5.0 };
