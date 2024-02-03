@@ -6,6 +6,7 @@ pub struct Player {
     pub x: f32,
     pub y: f32,
     pub zoom: f32,
+    pub health: f32,
 }
 
 
@@ -14,6 +15,7 @@ impl Default for Player {
         Player {
             x:100.0,
             y: 100.0,
+            health: 20.0,
             zoom: 30.0,
         }
     }

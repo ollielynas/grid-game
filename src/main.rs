@@ -99,8 +99,9 @@ async fn main() {
 
         
         root_ui().label(None, &format!("fps: {}", get_fps()));
-        root_ui().label(None, &format!("{:?}", hover));
         root_ui().label(None, &format!("Using {:?}", draw));
+        // root_ui().slider(0, "health", 0.0..20.0, &mut player.health);
+
 
         next_frame().await
 

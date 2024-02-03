@@ -22,7 +22,9 @@ pub enum Pixel {
     Wood,
     Bedrock,
     Smoke,
+    Steam,
     Gold,
+    Lava,
 }
 
 impl Default for Pixel {
@@ -39,11 +41,13 @@ impl Pixel {
             Pixel::Fire => Color::from_rgba(193, 84, 45, 255),
             Pixel::Wood => Color::from_rgba(139, 107, 59, 255),
             Pixel::Smoke => Color::from_rgba(190,190,190, 255),
+            Pixel::Steam => Color::from_rgba(199,213,224, 255),
             Pixel::Water => Color::from_rgba(35,69,190, 255),
             Pixel::Dirt => Color::from_rgba(155,118,83, 255),
             Pixel::Stone => Color::from_rgba(168,169,173, 255),
             Pixel::Grass => Color::from_rgba(113,169,44, 255),
             Pixel::Gold => Color::from_rgba(205, 127, 50, 255),
+            Pixel::Lava => Color::from_rgba(247, 104, 6, 255),
             Pixel::Bedrock => Color::from_rgba(fastrand::u8(0..255), fastrand::u8(0..255), fastrand::u8(0..255), 255),
         }
     }
@@ -60,19 +64,22 @@ impl Pixel {
             Pixel::Stone => Pixel::Dirt,
             Pixel::Dirt => Pixel::Grass,
             Pixel::Grass => Pixel::Gold,
-            Pixel::Gold => Pixel::Air,
+            Pixel::Gold => Pixel::Lava,
+            Pixel::Lava => Pixel::Steam,
+            Pixel::Steam => Pixel::Air,
         }
 
     }
 
     pub fn is_airy(&self) -> bool {
-        return matches!(self, Pixel::Air | Pixel::Fire | Pixel::Smoke);
+        return matches!(self, Pixel::Air | Pixel::Fire | Pixel::Smoke | Pixel::Steam);
     }
     pub fn fluid_density(&self) -> Option<i32> {
         match self {
             Pixel::Air => Some(3),
-            Pixel::Sand|Pixel::Dirt => Some(30),
+            Pixel::Sand|Pixel::Dirt|Pixel::Lava => Some(30),
             Pixel::Smoke => Some(1),
+            Pixel::Steam => Some(1),
             Pixel::Water => Some(15),
             Pixel::Fire => Some(2),
             Pixel::Bedrock
@@ -186,7 +193,11 @@ impl Map {
                 }
             }
             if perlin.get_noise(col as f64, row as f64) < -1000.0 {
+                if row as f32 > self.size as f32 * 0.75 {
+                self.grid[(row,col)] = Pixel::Lava;
+            }else {
                 self.grid[(row,col)] = Pixel::Water;
+            }
                 
             }
             self.update_texture_px.push((row, col));
@@ -211,8 +222,10 @@ impl Map {
                 |Pixel::Stone
                 |Pixel::Fire
                 |Pixel::Gold
+                |Pixel::Steam
                 |Pixel::Wood 
-                |Pixel::Bedrock 
+                |Pixel::Bedrock
+                |Pixel::Lava
                 |Pixel::Smoke => {}, 
             }
         }

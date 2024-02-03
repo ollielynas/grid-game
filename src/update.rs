@@ -28,14 +28,14 @@ impl Map {
 
         
         
-        let num = fastrand::i8(0..100);
+        let num = fastrand::f32()*100.0;
         let u_row = row as usize;
         let u_col = col as usize;
 
         let is_less_dense = self.grid[(u_row+1,u_col)].less_dense(self.grid[(u_row,u_col)]);
 
         if is_less_dense && self.grid[(u_row,u_col)].fluid_density().is_some() {
-            if !self.grid[(u_row,u_col)].is_airy() || num > 85 - self.grid[(u_row,u_col)].fluid_density().unwrap_or(85) as i8 {
+            if (!self.grid[(u_row,u_col)].is_airy()) || num > 85.0 {
                 self.swap_px((row, col), (row + 1, col));
                 self.update_texture_px.push((row as usize, col as usize));
                 self.update_texture_px.push((row as usize +1, col as usize));
@@ -85,6 +85,30 @@ impl Map {
                 }
             }
             }
+            Pixel::Lava => {
+                if !is_less_dense && num < 10.0 {
+                    let side = fastrand::choice([0,2]).unwrap_or(1);
+                    if self.grid[(u_row,u_col-1+side)].less_dense(Pixel::Lava) {
+                        self.swap_px((row, col), (row, col + side as i32 -1));
+                        self.update_texture_px.push((row as usize, col as usize));
+                        self.update_texture_px.push((row as usize, col as usize + side -1));
+                    }else if self.grid[(u_row,u_col-1+2-side)].less_dense(Pixel::Lava) {
+                        self.swap_px((row, col), (row, col + 1-side as i32));
+                        self.update_texture_px.push((row as usize, col as usize));
+                        self.update_texture_px.push((row as usize, col as usize + 1-side));
+                    
+                }
+            }
+            if self.grid[(u_row - 1,u_col)] == Pixel::Water {
+                if num < 1.5 {
+                    self.grid[(u_row,u_col)] = Pixel::Stone;
+                    self.update_texture_px.push((row as usize, col as usize));
+                }
+                self.update_texture_px.push((row as usize -1, col as usize));
+                self.grid[(u_row - 1,u_col)] = Pixel::Steam;
+            
+            }
+        }
 
             Pixel::Fire => {
 
@@ -96,7 +120,7 @@ impl Map {
                 
                 for row2 in list1 {
                     for col2 in list2 {
-                        if self.grid[(row as usize -1 + row2, col as usize -1 + col2)].is_flammable() && num < 5 {
+                        if self.grid[(row as usize -1 + row2, col as usize -1 + col2)].is_flammable() && num < 5.0 {
                             self.grid[(row as usize -1 + row2, col as usize -1 + col2)] = Pixel::Fire;
                             self.update_texture_px.push((row as usize -1, col as usize));
                         }
@@ -104,7 +128,7 @@ impl Map {
                 }
                 
 
-                if num == 5 {
+                if num < 1.0 {
                     self.grid[(u_row,u_col)] = Pixel::Smoke;
                     self.update_texture_px.push((row as usize, col as usize));
                 }
@@ -114,10 +138,29 @@ impl Map {
                
             }
             Pixel::Smoke => {
-                if num > 98 {
+                if num > 98.0 {
                     self.grid[(u_row,u_col)] = Pixel::Air;
                     self.update_texture_px.push((row as usize, col as usize));
                 }
+            }
+            Pixel::Steam => {
+                if num < 0.1 {
+                    self.grid[(u_row,u_col)] = Pixel::Water;
+                    self.update_texture_px.push((row as usize, col as usize));
+                }
+                if self.grid[(u_row-1,u_col)].fluid_density().unwrap_or(99) != 3 {
+                    let side = fastrand::choice([0,2]).unwrap_or(1);
+                    if self.grid[(u_row,u_col-1+side)].is_airy() {
+                        self.swap_px((row, col), (row, col + side as i32 -1));
+                        self.update_texture_px.push((row as usize, col as usize));
+                        self.update_texture_px.push((row as usize, col as usize + side -1));
+                    }else if self.grid[(u_row,u_col-1+2-side)].is_airy() {
+                        self.swap_px((row, col), (row, col + 1-side as i32));
+                        self.update_texture_px.push((row as usize, col as usize));
+                        self.update_texture_px.push((row as usize, col as usize + 1-side));
+                    
+                }
+            }
             }
             Pixel::Air => {},
             Pixel::Stone => {},
