@@ -103,6 +103,13 @@ impl Pixel {
         }
     }
 
+    pub fn can_hit(&self) -> bool {
+        match self {
+            Pixel::Sand | Pixel::Dirt | Pixel::Bedrock | Pixel::Wood | Pixel::Stone | Pixel::Gold | Pixel::Grass => true,
+            Pixel::Air | Pixel::Lava | Pixel::Steam | Pixel::Water | Pixel::Fire | Pixel::Smoke => false
+        }
+    }
+
     pub fn less_dense(&self, p: Pixel) -> bool {
         self.fluid_density().unwrap_or(69) < p.fluid_density().unwrap_or(98)
     }

@@ -109,13 +109,15 @@ async fn main() {
         
         draw_texture_ex(&texture, 0.0, 0.0, WHITE,  DrawTextureParams { 
             ..Default::default()});
-        
+
         draw_texture_ex(&light_texture, 0.0, 0.0, WHITE,  DrawTextureParams { 
             ..Default::default()});
         
-        
-        
 
+        let hit = player.make_map_box(&map);
+        hit.render();
+
+        player.get_player_box().render();
         
         root_ui().label(None, &format!("fps: {}", get_fps()));
         root_ui().label(None, &format!("Using {:?}", draw));
