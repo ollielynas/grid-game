@@ -13,8 +13,9 @@ impl Map {
         }
         self.move_fluids();
     }
-
+/// TODO: https://www.codeproject.com/Articles/16405/Queue-Linear-Flood-Fill-A-Fast-Flood-Fill-Algorith
     pub fn move_fluids(&mut self) {
+
         let mut fluid_surfaces: Vec<Vec<(usize, usize)>> = vec![];
         let mut detected_fluids = Grid::from_vec(
             (0..self.size.pow(2)).map(|_| 0).collect(),

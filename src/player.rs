@@ -1,11 +1,40 @@
+use std::default;
+
 use macroquad::{
-    camera::Camera2D, color::{BLACK, RED}, input::{get_char_pressed, is_key_down}, math::{Rect, Vec2}, miniquad::KeyCode, shapes::draw_line, time::{get_fps, get_frame_time}, window::{screen_height, screen_width}
+    camera::Camera2D, color::{BLACK, RED}, input::{get_char_pressed, is_key_down, mouse_position}, math::{Rect, Vec2}, miniquad::KeyCode, shapes::draw_line, time::{get_fps, get_frame_time}, window::{screen_height, screen_width}
 };
 
-use crate::grid;
+use crate::{entity::Entity, map::Pixel};
 use crate::map::Map;
 
 const SPEED: f32 = 100.0;
+
+
+
+#[derive(PartialEq, Debug, Clone)]
+pub enum Item {
+    Hand,
+    Pickaxe,
+    SpawnEntity{entity: Entity, count: i32},
+    PlacePixel{pixel: Pixel, count: i32}
+}
+
+
+pub struct Inventory {
+    pub items: Vec<Item>,
+    pub open: bool,
+    pub animation: f32,
+}
+
+impl Default for Inventory {
+    fn default() -> Self {
+        Inventory {
+            items: vec![],
+            open: false,
+            animation: 1.0,
+        }
+    }
+}
 
 pub struct Player {
     pub x: f32,
@@ -14,11 +43,13 @@ pub struct Player {
     pub vy: f32,
     pub zoom: f32,
     pub health: f32,
+    pub inventory: Inventory,
+    pub item_in_hand: Item,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum CollisionDirection {
-    IntoRight, IntoLeft, IntoDown, IntoUp
+    Right, Left, Down, Up
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -32,7 +63,6 @@ pub struct VerticalLine {
     pub x: f32,
     pub y: f32,
     pub height: f32,
-
     pub left_collide: bool
 }
 
@@ -77,9 +107,9 @@ impl VerticalLine {
         }
 
         if v.x > 0.0 {
-            return Some(Collision { time: collision_time, dir: CollisionDirection::IntoRight });
+            return Some(Collision { time: collision_time, dir: CollisionDirection::Right });
         } else {
-            return Some(Collision { time: collision_time, dir: CollisionDirection::IntoLeft });
+            return Some(Collision { time: collision_time, dir: CollisionDirection::Left });
         }
     }
 }
@@ -133,9 +163,9 @@ impl HorizontalLine {
         }
 
         if v.y > 0.0 {
-            return Some(Collision { time: collision_time, dir: CollisionDirection::IntoDown });
+            return Some(Collision { time: collision_time, dir: CollisionDirection::Down });
         } else {
-            return Some(Collision { time: collision_time, dir: CollisionDirection::IntoUp });
+            return Some(Collision { time: collision_time, dir: CollisionDirection::Up });
         }
     }
 }
@@ -197,17 +227,93 @@ impl HitLineSet {
 impl Default for Player {
     fn default() -> Self {
         Player {
-            x: 10.0,
-            y: 10.0,
+            x: 50.0,
+            y: 50.0,
             vx: 0.0,
             vy: 0.0,
             health: 20.0,
             zoom: 30.0,
+            inventory: Inventory::default(),
+            item_in_hand: Item::Pickaxe,
         }
     }
 }
 
 impl Player {
+
+
+    pub fn gain_item(&mut self, item: Item) {
+        match item {
+            Item::Hand => {},
+            Item::Pickaxe => {
+                if !self.inventory.items.contains(&Item::Pickaxe) {
+                    self.inventory.items.push(Item::Pickaxe)
+                }
+            },
+            Item::SpawnEntity { entity, count } => {
+                let mut added_count = false;
+                for i in self.inventory.items.iter_mut() {
+                    if let Item::SpawnEntity { entity: entity2, count: count2 } = i {
+                        if entity == *entity2 {
+                            *count2 += count;
+                            added_count = true;
+                        }
+                    }
+                }
+                if !added_count {
+                    self.inventory.items.push(Item::SpawnEntity { entity, count})
+                }
+            },
+            Item::PlacePixel { pixel, count } => {
+                let mut added_count = false;
+                for i in self.inventory.items.iter_mut() {
+                    if let Item::PlacePixel { pixel: pixel2, count: count2 } = i {
+                        if pixel == *pixel2 {
+                            *count2 += count;
+                            added_count = true;
+                        }
+                    }
+                }
+                if !added_count {
+                    self.inventory.items.push(Item::PlacePixel { pixel, count})
+                }
+            },
+        }
+    }
+
+    pub fn use_item(&mut self, map: &mut Map, row: usize, col: usize) {
+        let pos = (row,col);
+        match &mut self.item_in_hand {
+            Item::Hand => {},
+            Item::Pickaxe => {
+                if map.grid[pos] != Pixel::Air {
+                    self.gain_item(Item::PlacePixel { pixel: map.grid[pos], count: 1 });
+                    map.grid[pos] = Pixel::Air;
+                }
+            },
+            Item::SpawnEntity { entity, count } => {
+                *count -= 1;
+                // real point point in world
+                map.spawn_entity(entity.entity_type.clone(), col as f32, row as f32);
+                if *count == 0 {
+                    self.item_in_hand = Item::Hand;
+                }
+
+            },
+            Item::PlacePixel { pixel, count } => {
+                if map.grid[pos] != *pixel {
+                    *count -= 1;
+                    map.grid[pos] = *pixel
+                }
+                if *count == 0 {
+                    self.item_in_hand = Item::Hand;
+                }
+            },
+        }
+    }
+
+
+
     pub fn cam(&self) -> Camera2D {
         let scale = 100.0 / screen_width();
         Camera2D::from_display_rect(Rect {
@@ -289,17 +395,17 @@ impl Player {
         res
     }
 
-    pub fn get_player_box(&self) -> HitLineSet {
+    pub fn get_player_box(&self, offset_x: f32, offset_y: f32) -> HitLineSet {
         let mut res = HitLineSet {
             vertical: vec![],
             horizontal: vec![]
         };
 
-        res.horizontal.push(HorizontalLine::new(self.x, self.y, 1.95, true));
-        res.horizontal.push(HorizontalLine::new(self.x, self.y + 2.95, 1.95, false));
+        res.horizontal.push(HorizontalLine::new(self.x+offset_x, self.y + offset_y, 1.95, true));
+        res.horizontal.push(HorizontalLine::new(self.x+offset_x, self.y + offset_y + 2.95, 1.95, false));
 
-        res.vertical.push(VerticalLine::new(self.x, self.y, 2.95, true));
-        res.vertical.push(VerticalLine::new(self.x + 1.95, self.y, 2.95, false));
+        res.vertical.push(VerticalLine::new(self.x+offset_x, self.y + offset_y, 2.95, true));
+        res.vertical.push(VerticalLine::new(self.x+offset_x + 1.95, self.y + offset_y, 2.95, false));
 
         res
     }
@@ -315,7 +421,7 @@ impl Player {
         while remaining > 0.0 {
             let dp = Vec2::new(self.vx, self.vy) * remaining;
 
-            let collision = self.get_player_box().get_collision_with(&terain_hit, dp);
+            let collision = self.get_player_box(0.0,0.0).get_collision_with(&terain_hit, dp);
 
             match collision {
                 None => {
@@ -332,11 +438,21 @@ impl Player {
                     self.y += self.vy * collision.time * delta;
 
                     match collision.dir {
-                        CollisionDirection::IntoLeft | CollisionDirection::IntoRight => self.vx = 0.0,
+                        CollisionDirection::Left | CollisionDirection::Right => {
+                            let direction = self.vx.signum() * 0.04;
+                            if  self.get_player_box(0.0,0.0).get_collision_with(&terain_hit, Vec2::new(0.0 ,-1.0)).is_none()
+                            && self.get_player_box(0.0,-1.001).get_collision_with(&terain_hit, Vec2::new(direction ,0.0)).is_none()  {
+                                self.y -= 1.04;
+                                // self.vy += direction * 10.1;
+                            }else {
+                                
+                                self.vx = 0.0;
+                            }
+                        },
 
-                        CollisionDirection::IntoDown | CollisionDirection::IntoUp => {
+                        CollisionDirection::Down | CollisionDirection::Up => {
                             self.vy = 0.0;
-                            if collision.dir == CollisionDirection::IntoDown {
+                            if collision.dir == CollisionDirection::Down {
                                 on_ground = true;
                             }
                         }
@@ -350,23 +466,23 @@ impl Player {
         self.vy += if self.vy > 50.0 {
             0.0
         } else {
-            10.0
+            10.0 * delta * 60.0
         };
 
         let in_water = false;
 
         if on_ground && is_key_down(KeyCode::Space) && self.vy > -100.0 {
             if in_water {
-                self.vy -= 10.0
+                self.vy -= 10.0;
             } else {
                 self.vy -= 100.0;
             }
         }
 
-        self.vx *= 0.75;
+        self.vx *= 0.75_f32;
 
         if on_ground {
-            self.vx *= 0.7;
+            self.vx *= 0.7_f32;
         }
 
         if is_key_down(KeyCode::A) && self.vx > -100.0 {
@@ -377,53 +493,6 @@ impl Player {
             self.vx += 10.0;
         }
 
-        /*if on_ground && self.vy >= 0.0 {
-            if in_water {
-                self.vy *= 0.9
-            } else {
-                self.vy = 0.0;
-                self.y = (self.y).round() + 0.01;
-            }
-        }
 
-        if on_floor && is_key_down(KeyCode::Space) && self.vy > -100.0 {
-            if in_water {
-                self.vy -= 10.0
-            } else {
-                self.vy -= 100.0;
-            }
-        }
-
-        if in_water && self.vy < 100.0 && is_key_down(KeyCode::S) {
-            self.vy += 10.0
-        }
-
-        self.vx *= 0.75;
-
-        if on_floor {
-            self.vx *= 0.7;
-        }
-
-        if !left_wall && is_key_down(KeyCode::A) && self.vx > -100.0 {
-            self.vx -= 10.0;
-        }
-        if self.vx != 0.0 {
-            if on_ground3 && !in_water && !on_ground2 {
-                self.y -= 1.0;
-            }
-        }
-
-        if !right_wall && is_key_down(KeyCode::D) && self.vx < 100.0 {
-            self.vx += 10.0;
-        }
-
-        self.x += self.vx * delta;
-        self.y += self.vy * delta;
-
-        self.x = self.x.clamp(3.0, map.size as f32 - 3.0);
-        self.y = self.y.clamp(3.0, map.size as f32 - 6.0);
-        */
-
-        // println!("{points:?}");
     }
 }

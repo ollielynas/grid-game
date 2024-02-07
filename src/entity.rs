@@ -1,9 +1,11 @@
 
+use std::clone;
+
 use grid::Grid;
 use macroquad::{miniquad::FilterMode, texture::Texture2D, time::get_frame_time};
 
 use crate::map::Pixel;
-
+#[derive(PartialEq, Debug, Clone)]
 pub struct Entity {
     pub x: f32,
     pub y: f32,
@@ -82,6 +84,8 @@ impl Entity {
     }
 }
 
+
+#[derive(PartialEq, Clone, Copy, Debug)]
 pub enum EntityType {
     Tree,
     Soul,
