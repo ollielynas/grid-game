@@ -61,6 +61,10 @@ impl Pixel {
         }
     }
 
+    pub fn fluid(&self) -> bool {
+        matches!(self , Pixel::Lava | Pixel::Water)
+    }
+
     pub fn cycle(&self) -> Pixel {
         return match self {
             Pixel::Air => Pixel::Sand,

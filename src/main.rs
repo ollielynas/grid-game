@@ -28,8 +28,6 @@ fn window_conf() -> Conf {
 #[macroquad::main(window_conf)]
 async fn main() {
     
-
-    
     let mut player = Player::default();
     
     
@@ -43,7 +41,7 @@ async fn main() {
     texture.set_filter(FilterMode::Nearest);
     // light_texture.set_filter(FilterMode::Nearest);
 
-    map.make_square(map::Pixel::Water);
+    // map.make_square(map::Pixel::Water);
     // map.make_log();
 
     let paused = false;
