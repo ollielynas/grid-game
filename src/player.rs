@@ -45,6 +45,16 @@ impl Player {
         })
     }
 
+    pub fn get_view_port(&self) -> Rect {
+        let scale = 100.0 / screen_width();
+        Rect {
+            x: self.x - (screen_width() * scale) / 2.0,
+            y: self.y - (screen_height() * scale) / 2.0,
+            w: screen_width() * scale,
+            h: screen_height() * scale,
+        }
+    }
+
     pub fn update(&mut self, map: &Map) {
         let delta = get_frame_time();
 

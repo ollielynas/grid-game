@@ -214,7 +214,6 @@ impl Map {
             }
             self.update_texture_px.push((row, col));
         }
-        for _ in 0..10 {self.update_state()}
         for ((row, col), _) in new_grid.indexed_iter() {
             let num = fastrand::u32(0..1000);
             match self.grid[(col,row)] {

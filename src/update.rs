@@ -1,15 +1,15 @@
-use crate::map::{Map, Pixel};
+use crate::{map::{Map, Pixel}, player::Player};
 use grid::{grid, Grid};
-use macroquad::{color::Color, rand::rand};
+use macroquad::{color::Color, math::Vec2, rand::rand};
 
 impl Map {
-    pub fn update_state(&mut self) {
+    pub fn update_state(&mut self, player: &Player) {
         for _ in 0..(0.5 * (self.size as f32).powi(2)) as usize {
             let point = (
                 fastrand::i32(2..self.size as i32 - 2),
                 fastrand::i32(2..self.size as i32 - 2),
             );
-            self.update_px(point.0, point.1);
+            self.update_px(point.0, point.1, player);
         }
         self.move_fluids();
     }
@@ -149,7 +149,7 @@ impl Map {
         self.update_texture_px.push((a.0 as usize, a.1 as usize));
     }
 
-    pub fn update_px(&mut self, col: i32, row: i32) {
+    pub fn update_px(&mut self, col: i32, row: i32, player: &Player) {
         let num = fastrand::f32() * 100.0;
         let u_row = row as usize;
         let u_col = col as usize;
@@ -282,6 +282,12 @@ impl Map {
                 self.update_texture_px.push((row as usize, col as usize));
             }
         }
+
+        let view_rect = player.get_view_port();
+
+   
+
+        if view_rect.contains(Vec2::new(player.x, player.y))  {
         let light_mask_surroundings = [
             self.light_mask.get_pixel(col as u32 - 1, row as u32 - 1).a,
             self.light_mask.get_pixel(col as u32 - 1, row as u32).a,
@@ -308,5 +314,6 @@ impl Map {
                     .clamp(0.0, 1.0),
             },
         );
+    }
     }
 }

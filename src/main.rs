@@ -13,7 +13,7 @@ use map::{Map, Pixel};
 use player::Player;
 
 /// size of map
-const SIZE: usize = 200;
+const SIZE: usize = 1010;
 
 fn window_conf() -> Conf {
         Conf {
@@ -59,7 +59,7 @@ async fn main() {
         clear_background(WHITE);
         
         if !paused {
-            map.update_state();
+            map.update_state(&player);
             map.entities.retain_mut(|x| x.update(&(map.grid)));
         }
 
@@ -67,7 +67,7 @@ async fn main() {
 
         match get_char_pressed() {
             Some('c') => {map.make_square(map::Pixel::Air);},
-            Some('t') => {map.update_state();},
+            Some('t') => {map.update_state(&player);},
             Some('f') => {draw = draw.cycle()},
             Some('g') => {map.gen_terrain()},
             _ => {}
