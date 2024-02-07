@@ -11,3 +11,10 @@ gaussian_blur = "0.1.1"
 grid = "0.13.0"
 macroquad = "0.4.4"
 perlin2d = "0.2.6"
+
+
+[profile.release]
+codegen-units = 1
+lto = false
+panic = "abort"
+strip = "debuginfo"

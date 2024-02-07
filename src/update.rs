@@ -1,12 +1,11 @@
-use std::mem::swap;
-use gaussian_blur::blur;
-use grid::*;
-use macroquad::{color::{BLACK, WHITE}, texture::Image};
+
     
 use crate::map::{Map, Pixel};
 
 
 impl Map {
+
+
     pub fn update_state(&mut self) {
         for _ in 0..(0.5 * (self.size as f32).powi(2)) as usize {
             let point = (fastrand::i32(2..self.size as i32-2),
@@ -17,31 +16,34 @@ impl Map {
             );
         }
     }
-
+    
+    /// swaps 2 pixels and also updates texture
     pub fn swap_px(&mut self, a: (i32, i32), b: (i32, i32)) {
         let temp1 = self.grid[(a.0 as usize, a.1 as usize)];
         self.grid[(a.0 as usize, a.1 as usize)] = self.grid[(b.0 as usize, b.1 as usize)];
         self.grid[(b.0 as usize, b.1 as usize)] = temp1;
+        self.update_texture_px.push((b.0 as usize, b.1 as usize));
+        self.update_texture_px.push((a.0 as usize, a.1 as usize));
     }
 
     pub fn update_px(&mut self, col: i32, row: i32) {
 
-        
-        
         let num = fastrand::f32()*100.0;
         let u_row = row as usize;
         let u_col = col as usize;
+
+
 
         let is_less_dense = self.grid[(u_row+1,u_col)].less_dense(self.grid[(u_row,u_col)]);
 
         if is_less_dense && self.grid[(u_row,u_col)].fluid_density().is_some() {
             if (!self.grid[(u_row,u_col)].is_airy()) || num > 85.0 {
                 self.swap_px((row, col), (row + 1, col));
-                self.update_texture_px.push((row as usize, col as usize));
-                self.update_texture_px.push((row as usize +1, col as usize));
             }
         }
 
+
+        // updates based on what pixel is being updated
         match self.grid[(u_row,u_col)] {
 
             Pixel::Sand  => {
@@ -49,8 +51,6 @@ impl Map {
                     let side = fastrand::choice([0,2]).unwrap_or(1);
                     if self.grid[(u_row+1,u_col-1+side)].less_dense(Pixel::Sand) {
                         self.swap_px((row, col), (row + 1, col + side as i32 -1));
-                        self.update_texture_px.push((row as usize, col as usize));
-                        self.update_texture_px.push((row as usize+1, col as usize + side -1));
                     }
                 }
             }
@@ -60,8 +60,6 @@ impl Map {
                     let side = fastrand::choice([0,2]).unwrap_or(1);
                     if self.grid[(u_row+1,u_col-1+side)].less_dense(Pixel::Dirt) {
                         self.swap_px((row, col), (row + 1, col + side as i32 -1));
-                        self.update_texture_px.push((row as usize, col as usize));
-                        self.update_texture_px.push((row as usize+1, col as usize + side -1));
                     }
                 }
                 if self.grid[(u_row-1,u_col)] == Pixel::Air {
@@ -75,12 +73,8 @@ impl Map {
                     let side = fastrand::choice([0,2]).unwrap_or(1);
                     if self.grid[(u_row,u_col-1+side)].is_airy() {
                         self.swap_px((row, col), (row, col + side as i32 -1));
-                        self.update_texture_px.push((row as usize, col as usize));
-                        self.update_texture_px.push((row as usize, col as usize + side -1));
                     }else if self.grid[(u_row,u_col-1+2-side)].is_airy() {
                         self.swap_px((row, col), (row, col + 1-side as i32));
-                        self.update_texture_px.push((row as usize, col as usize));
-                        self.update_texture_px.push((row as usize, col as usize + 1-side));
                     
                 }
             }
@@ -90,12 +84,8 @@ impl Map {
                     let side = fastrand::choice([0,2]).unwrap_or(1);
                     if self.grid[(u_row,u_col-1+side)].less_dense(Pixel::Lava) {
                         self.swap_px((row, col), (row, col + side as i32 -1));
-                        self.update_texture_px.push((row as usize, col as usize));
-                        self.update_texture_px.push((row as usize, col as usize + side -1));
                     }else if self.grid[(u_row,u_col-1+2-side)].less_dense(Pixel::Lava) {
                         self.swap_px((row, col), (row, col + 1-side as i32));
-                        self.update_texture_px.push((row as usize, col as usize));
-                        self.update_texture_px.push((row as usize, col as usize + 1-side));
                     
                 }
             }
@@ -152,12 +142,8 @@ impl Map {
                     let side = fastrand::choice([0,2]).unwrap_or(1);
                     if self.grid[(u_row,u_col-1+side)].is_airy() {
                         self.swap_px((row, col), (row, col + side as i32 -1));
-                        self.update_texture_px.push((row as usize, col as usize));
-                        self.update_texture_px.push((row as usize, col as usize + side -1));
                     }else if self.grid[(u_row,u_col-1+2-side)].is_airy() {
                         self.swap_px((row, col), (row, col + 1-side as i32));
-                        self.update_texture_px.push((row as usize, col as usize));
-                        self.update_texture_px.push((row as usize, col as usize + 1-side));
                     
                 }
             }
