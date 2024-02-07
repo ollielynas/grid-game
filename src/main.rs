@@ -13,7 +13,7 @@ use map::{Map, Pixel};
 use player::Player;
 
 /// size of map
-const SIZE: usize = 1010;
+const SIZE: usize = 101;
 
 fn window_conf() -> Conf {
         Conf {
@@ -114,7 +114,7 @@ async fn main() {
             ..Default::default()});
         
 
-        let hit = player.make_map_box(&map);
+        let hit = player.make_map_box(&map, player.get_view_port(), false);
         hit.render();
 
         player.get_player_box().render();

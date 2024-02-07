@@ -228,7 +228,7 @@ impl Player {
         }
     }
 
-    pub fn make_map_box(&self, map: &Map) -> HitLineSet {
+    pub fn make_map_box(&self, map: &Map, view: Rect, waffle: bool) -> HitLineSet {
         let mut res = HitLineSet {
             vertical: vec![],
             horizontal: vec![]
@@ -240,8 +240,8 @@ impl Player {
         res.vertical.push(VerticalLine::new(0.0, 0.0, map.size as f32, false));
         res.vertical.push(VerticalLine::new(map.size as f32, 0.0, map.size as f32, true));
 
-        for row in 0.max(self.y as i32 - 20) as usize..map.size.min(self.y as u32 + 20) as usize {
-            for col in 0.max(self.x as i32 - 20) as usize..map.size.min(self.x as u32 + 20) as usize  {
+        for row in 0.max((view.y - 2.0) as i32) as usize..map.size.min((view.y + view.h + 2.0) as u32) as usize {
+            for col in 0.max((view.x - 2.0) as i32) as usize..map.size.min((view.x + view.w + 2.0) as u32) as usize  {
                 
                 if !map.grid[(row, col)].can_hit() {
                     continue;
@@ -249,7 +249,7 @@ impl Player {
 
                 if row == 0 || !map.grid[(row - 1, col)].can_hit() {
                     res.horizontal.push(HorizontalLine::new(col as f32, row as f32, 1.0, true));
-                } else if map.grid[(row - 1, col)].can_hit() {
+                } else if waffle && map.grid[(row - 1, col)].can_hit() {
                     let colf = col as f32;
                     let rowf = row as f32;
 
@@ -260,7 +260,7 @@ impl Player {
 
                 if col == 0 || !map.grid[(row, col - 1)].can_hit() {
                     res.vertical.push(VerticalLine::new(col as f32, row as f32, 1.0, true));
-                } else if map.grid[(row, col - 1)].can_hit() {
+                } else if waffle && map.grid[(row, col - 1)].can_hit() {
                     let colf = col as f32;
                     let rowf = row as f32;
 
@@ -275,7 +275,7 @@ impl Player {
 
                 if col == map.size as usize - 1 || !map.grid[(row, col + 1)].can_hit() {
                     res.vertical.push(VerticalLine::new(col as f32 + 1.0, row as f32, 1.0, false));
-                } else if map.grid[(row, col + 1)].can_hit() {
+                } else if waffle && map.grid[(row, col + 1)].can_hit() {
                     let colf = col as f32;
                     let rowf = row as f32;
 
@@ -308,7 +308,7 @@ impl Player {
         let delta = get_frame_time();
         let mut remaining = delta;
 
-        let terain_hit = self.make_map_box(map);
+        let terain_hit = self.make_map_box(map, Rect::new(self.x - 20.0, self.y - 20.0, 40.0, 40.0), true);
 
         let mut on_ground = false;
 
@@ -359,7 +359,7 @@ impl Player {
             if in_water {
                 self.vy -= 10.0
             } else {
-                self.vy -= 200.0;
+                self.vy -= 100.0;
             }
         }
 
