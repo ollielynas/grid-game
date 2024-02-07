@@ -219,9 +219,6 @@ impl Map {
                         .push((row as usize - 1, col as usize));
                     self.grid[(u_row - 1, u_col)] = Pixel::Steam;
                 }
-            }
-
-            Pixel::Fire => {
                 let mut list1 = [0, 1, 2];
                 let mut list2 = [0, 1, 2];
 
@@ -241,10 +238,38 @@ impl Map {
                         }
                     }
                 }
+            }
+
+            Pixel::Fire => {
+                let mut list2: [(usize, usize); 4] = [(0,1), (2,1), (1,0), (1,2)];
+
+                fastrand::shuffle(&mut list2);
+
+                    for (row2, col2) in list2 {
+                        if self.grid[(row as usize - 1 + row2, col as usize - 1 + col2)]
+                            .is_flammable()
+                            && num < 5.0
+                        {
+                            self.grid[(row as usize - 1 + row2, col as usize - 1 + col2)] =
+                                Pixel::Fire;
+                            self.update_texture_px
+                                .push((row as usize - 1, col as usize));
+                        }
+                }
 
                 if num < 1.0 {
                     self.grid[(u_row, u_col)] = Pixel::Smoke;
                     self.update_texture_px.push((row as usize, col as usize));
+                }
+            }
+            Pixel::Oil => {
+                if !(is_less_dense) {
+                    let side = fastrand::choice([0, 2]).unwrap_or(1);
+                    if self.grid[(u_row, u_col - 1 + side)].is_airy() {
+                        self.swap_px((row, col), (row, col + side as i32 - 1));
+                    } else if self.grid[(u_row, u_col - 1 + 2 - side)].is_airy() {
+                        self.swap_px((row, col), (row, col + 1 - side as i32));
+                    }
                 }
             }
             Pixel::Wood => {}
@@ -270,14 +295,22 @@ impl Map {
             }
             Pixel::Air => {}
             Pixel::Stone => {}
+            Pixel::Glass => {
+                if self.grid[(u_row - 1, u_col)] == Pixel::Fire 
+                || self.grid[(u_row + 1, u_col)] == Pixel::Fire 
+                || self.grid[(u_row, u_col + 1)] == Pixel::Fire 
+                || self.grid[(u_row, u_col - 1)] == Pixel::Fire {
+                    self.grid[(u_row,u_col)] = Pixel::Glass
+                }
+            }
             Pixel::Gold => {}
             Pixel::Grass => {
                 if !self.grid[(u_row - 1, u_col)].is_airy()
                     || self.grid[(u_row + 1, u_col)].is_airy()
-                {
-                    self.grid[(u_row, u_col)] = Pixel::Dirt;
-                    self.update_texture_px.push((row as usize, col as usize));
-                }
+                    {
+                        self.grid[(u_row, u_col)] = Pixel::Dirt;
+                        self.update_texture_px.push((row as usize, col as usize));
+                    }
             }
             Pixel::Bedrock => {
                 self.update_texture_px.push((row as usize, col as usize));

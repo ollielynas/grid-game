@@ -12,7 +12,7 @@ use map::{Map, Pixel};
 use player::{Item, Player};
 
 /// size of map
-const SIZE: usize = 601;
+const SIZE: usize = 301;
 
 fn window_conf() -> Conf {
     Conf {

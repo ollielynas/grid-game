@@ -22,6 +22,8 @@ pub enum Pixel {
     Smoke,
     Steam,
     Gold,
+    Oil,
+    Glass,
     Lava,
 }
 
@@ -46,6 +48,8 @@ impl Pixel {
             Pixel::Grass => Color::from_rgba(113,169,44, 255),
             Pixel::Gold => Color::from_rgba(205, 127, 50, 255),
             Pixel::Lava => Color::from_rgba(247, 104, 6, 255),
+            Pixel::Oil => Color::from_rgba(0, 0, 0, 255),
+            Pixel::Glass => Color::from_rgba(100, 104, 230, 15),
             Pixel::Bedrock => Color::from_rgba(fastrand::u8(0..255), fastrand::u8(0..255), fastrand::u8(0..255), 255),
         }
     }
@@ -79,7 +83,9 @@ impl Pixel {
             Pixel::Grass => Pixel::Gold,
             Pixel::Gold => Pixel::Lava,
             Pixel::Lava => Pixel::Steam,
-            Pixel::Steam => Pixel::Air,
+            Pixel::Steam => Pixel::Glass,
+            Pixel::Glass => Pixel::Oil,
+            Pixel::Oil => Pixel::Air,
         }
 
     }
@@ -94,10 +100,12 @@ impl Pixel {
             Pixel::Smoke => Some(1),
             Pixel::Steam => Some(1),
             Pixel::Water => Some(15),
+            Pixel::Oil => Some(10),
             Pixel::Fire => Some(2),
             Pixel::Bedrock
             |Pixel::Wood 
             |Pixel::Stone
+            |Pixel::Glass
             |Pixel::Gold
             |Pixel::Grass => None ,
         }
@@ -105,8 +113,8 @@ impl Pixel {
 
     pub fn can_hit(&self) -> bool {
         match self {
-            Pixel::Sand | Pixel::Dirt | Pixel::Bedrock | Pixel::Wood | Pixel::Stone | Pixel::Gold | Pixel::Grass => true,
-            Pixel::Air | Pixel::Lava | Pixel::Steam | Pixel::Water | Pixel::Fire | Pixel::Smoke => false
+            Pixel::Glass |Pixel::Sand | Pixel::Dirt | Pixel::Bedrock | Pixel::Wood | Pixel::Stone | Pixel::Gold | Pixel::Grass => true,
+            Pixel::Oil |Pixel::Air | Pixel::Lava | Pixel::Steam | Pixel::Water | Pixel::Fire | Pixel::Smoke => false
         }
     }
 
@@ -115,7 +123,7 @@ impl Pixel {
     }
 
     pub fn is_flammable(&self) -> bool {
-        return matches!(self, Pixel::Wood);
+        return matches!(self, Pixel::Wood | Pixel::Oil);
     }
 }
 
@@ -211,14 +219,28 @@ impl Map {
                 self.grid[(row,col)] = Pixel::Stone;
                 }
             }
+            if perlin.get_noise(col as f64, row as f64) > 150.0 && row as f32 > self.size as f32 * 0.85 {
+                
+                if perlin3.get_noise(col as f64, row as f64) > 1000.0 {
+                    self.grid[(row,col)] = Pixel::Oil;
+                }
+            }
+
             if perlin.get_noise(col as f64, row as f64) < -1000.0 {
                 if row as f32 > self.size as f32 * 0.75 {
                 self.grid[(row,col)] = Pixel::Lava;
             }else {
                 self.grid[(row,col)] = Pixel::Water;
             }
-                
+            
+            
+        }
+        if (row as f32) < self.size as f32 * 0.25 {
+            self.grid[(row,col)] = Pixel::Air;
+            if (row as f32) > self.size as f32 * 0.22 {
+                self.grid[(row,col)] = Pixel::Dirt;
             }
+        }
             self.update_texture_px.push((row, col));
         }
         for ((row, col), _) in new_grid.indexed_iter() {
@@ -238,6 +260,8 @@ impl Map {
                 |Pixel::Sand
                 |Pixel::Dirt
                 |Pixel::Stone
+                |Pixel::Glass
+                |Pixel::Oil
                 |Pixel::Fire
                 |Pixel::Gold
                 |Pixel::Steam
