@@ -83,6 +83,7 @@ async fn main() {
         
         
         draw_rectangle(player.x, player.y, 2.0, 3.0, ORANGE);
+
         
         for e in &map.entities {
             draw_texture_ex(&e.texture, e.x, e.y - e.height +1.0, WHITE,  DrawTextureParams { 
@@ -92,10 +93,12 @@ async fn main() {
         
         draw_texture_ex(&texture, 0.0, 0.0, WHITE,  DrawTextureParams { 
             ..Default::default()});
-        
-        
-        
 
+
+        let hit = player.make_map_box(&map);
+        hit.render();
+
+        player.get_player_box().render();
         
         root_ui().label(None, &format!("fps: {}", get_fps()));
         root_ui().label(None, &format!("Using {:?}", draw));
