@@ -23,7 +23,7 @@ async fn main() {
     let mut player = Player::default();
     
     
-    let mut map = Map::new_square(601);
+    let mut map = Map::new_square(101);
     map.update_image();
     let texture: Texture2D = Texture2D::from_image(&map.image);
     texture.set_filter(FilterMode::Nearest);
@@ -40,6 +40,7 @@ async fn main() {
     let mut hover = None;
     
     loop {
+        player.update(&map);
         set_camera(&player.cam());
         clear_background(WHITE);
         
@@ -47,10 +48,8 @@ async fn main() {
             map.update_state();
             map.entities.retain_mut(|x| x.update(&(map.grid)));
         }
-        player.update();
 
         match get_char_pressed() {
-            Some(' ') => {paused = !paused},
             Some('c') => {map.make_square(map::Pixel::Air);},
             Some('t') => {map.update_state();},
             Some('f') => {draw = draw.cycle()},
@@ -81,21 +80,21 @@ async fn main() {
             texture.update(&map.image);
             map.update_texture_px = vec![];
         }
-
         
         
-        draw_texture_ex(&texture, 0.0, 0.0, WHITE,  DrawTextureParams { 
-            ..Default::default()});
-
+        draw_rectangle(player.x, player.y, 2.0, 3.0, ORANGE);
         
         for e in &map.entities {
             draw_texture_ex(&e.texture, e.x, e.y - e.height +1.0, WHITE,  DrawTextureParams { 
                 dest_size: Some(Vec2::new(e.width, e.height)),
                 ..Default::default()});
         }
-
         
-
+        draw_texture_ex(&texture, 0.0, 0.0, WHITE,  DrawTextureParams { 
+            ..Default::default()});
+        
+        
+        
 
         
         root_ui().label(None, &format!("fps: {}", get_fps()));

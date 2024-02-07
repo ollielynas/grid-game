@@ -42,7 +42,7 @@ impl Pixel {
             Pixel::Wood => Color::from_rgba(139, 107, 59, 255),
             Pixel::Smoke => Color::from_rgba(190,190,190, 255),
             Pixel::Steam => Color::from_rgba(199,213,224, 255),
-            Pixel::Water => Color::from_rgba(35,69,190, 255),
+            Pixel::Water => Color::from_rgba(35,69,190, 150),
             Pixel::Dirt => Color::from_rgba(155,118,83, 255),
             Pixel::Stone => Color::from_rgba(168,169,173, 255),
             Pixel::Grass => Color::from_rgba(113,169,44, 255),

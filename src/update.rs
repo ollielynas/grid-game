@@ -2,13 +2,13 @@ use std::mem::swap;
 use gaussian_blur::blur;
 use grid::*;
 use macroquad::{color::{BLACK, WHITE}, texture::Image};
-
+    
 use crate::map::{Map, Pixel};
 
 
 impl Map {
     pub fn update_state(&mut self) {
-        for _ in 0..1000000 {
+        for _ in 0..(0.5 * (self.size as f32).powi(2)) as usize {
             let point = (fastrand::i32(2..self.size as i32-2),
             fastrand::i32(2..self.size as i32-2));
             self.update_px(
