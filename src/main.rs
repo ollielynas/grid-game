@@ -13,7 +13,7 @@ use map::{Map, Pixel};
 use player::Player;
 
 /// size of map
-const SIZE: usize = 500;
+const SIZE: usize = 200;
 
 fn window_conf() -> Conf {
         Conf {
@@ -38,7 +38,10 @@ async fn main() {
 
     
     let texture: Texture2D = Texture2D::from_image(&map.image);
+    let light_texture: Texture2D = Texture2D::from_image(&map.light_mask);
+    
     texture.set_filter(FilterMode::Nearest);
+    // light_texture.set_filter(FilterMode::Nearest);
 
     map.make_square(map::Pixel::Water);
     // map.make_log();
@@ -61,6 +64,8 @@ async fn main() {
             map.update_state();
             map.entities.retain_mut(|x| x.update(&(map.grid)));
         }
+
+        light_texture.update(&map.light_mask);
 
         match get_char_pressed() {
             Some('c') => {map.make_square(map::Pixel::Air);},
@@ -105,6 +110,9 @@ async fn main() {
         }
         
         draw_texture_ex(&texture, 0.0, 0.0, WHITE,  DrawTextureParams { 
+            ..Default::default()});
+        
+        draw_texture_ex(&light_texture, 0.0, 0.0, WHITE,  DrawTextureParams { 
             ..Default::default()});
         
         

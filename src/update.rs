@@ -1,7 +1,8 @@
 
     
 use crate::map::{Map, Pixel};
-
+use grid::grid;
+use macroquad::color::Color;
 
 impl Map {
 
@@ -31,6 +32,26 @@ impl Map {
         let num = fastrand::f32()*100.0;
         let u_row = row as usize;
         let u_col = col as usize;
+
+
+        let light_mask_surroundings = [
+            self.light_mask.get_pixel(col as u32 - 1, row as u32 - 1).a,
+            self.light_mask.get_pixel(col as u32 - 1, row as u32).a,
+            self.light_mask.get_pixel(col as u32 - 1, row as u32 + 1).a ,
+            self.light_mask.get_pixel(col as u32, row as u32 - 1).a,
+            self.light_mask.get_pixel(col as u32, row as u32 + 1).a,
+            self.light_mask.get_pixel(col as u32 + 1, row as u32 - 1).a,
+            self.light_mask.get_pixel(col as u32 + 1, row as u32).a,
+            self.light_mask.get_pixel(col as u32 + 1, row as u32 + 1).a,
+            self.grid[(u_row,u_col)].light_emission(),
+        ];
+
+        self.light_mask.set_pixel(col as u32, row as u32, Color {
+            r: 0.0,
+            g: 0.0,
+            b: 0.0,
+            a: (light_mask_surroundings.iter().fold(std::f32::MAX, |a,b| a.min(*b)) + 0.15).clamp(0.0,1.0),
+        });
 
 
 

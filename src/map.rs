@@ -50,6 +50,17 @@ impl Pixel {
         }
     }
 
+    pub fn light_emission(&self) -> f32 {
+        match self {
+            Pixel::Air => {0.05},
+            Pixel::Steam | Pixel::Smoke => {0.1},
+            Pixel::Water => {0.5},
+            Pixel::Lava => {0.0},
+            Pixel::Fire => {0.0},
+            _ => {1.0}
+        }
+    }
+
     pub fn cycle(&self) -> Pixel {
         return match self {
             Pixel::Air => Pixel::Sand,
@@ -102,6 +113,7 @@ pub struct Map {
     pub size: u32,
     pub update_texture_px: Vec<(usize, usize)>,
     pub image: Image,
+    pub light_mask: Image,
     pub entities: Vec<Entity>,
     // pub heatmap: Image,
 }
@@ -170,7 +182,6 @@ impl Map {
     // seed - A value that changes the output of a coherent-noise function.
     fastrand::i32(0..200)
 );
-    
 
         for ((row, col), _) in new_grid.indexed_iter() {
             if perlin.get_noise(col as f64, row as f64) > -10.0 {
@@ -185,7 +196,6 @@ impl Map {
                 
                 if perlin3.get_noise(col as f64, row as f64) > 1200.0 {
                     self.grid[(row,col)] = Pixel::Gold;
-
                 }else {
                 self.grid[(row,col)] = Pixel::Stone;
                 }
@@ -238,6 +248,7 @@ impl Map {
             size: size as u32,
             update_texture_px: vec![],
             image: Image::gen_image_color(size as u16, size as u16, WHITE),
+            light_mask: Image::gen_image_color(size as u16, size as u16, Color { r: 0.0, g: 0.0, b: 0.0, a: 0.3 }),
             entities: vec![],
         };
     }
@@ -263,6 +274,8 @@ impl Map {
         }
     }
     
+
+
 
     /// updates the image based on the pixels listed in the 'update_texture_px' list
     pub fn update_image(&mut self) {
