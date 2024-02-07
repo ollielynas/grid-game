@@ -1,9 +1,8 @@
-use std::io::Read;
 
 use grid::Grid;
-use macroquad::{experimental::scene::camera_pos, miniquad::FilterMode, texture::Texture2D, time::get_frame_time};
+use macroquad::{miniquad::FilterMode, texture::Texture2D, time::get_frame_time};
 
-use crate::map::{Map, Pixel};
+use crate::map::Pixel;
 
 pub struct Entity {
     pub x: f32,
@@ -98,13 +97,7 @@ impl EntityType {
             EntityType::Fish{air:_} => 1.0/5.0,
         }
     }
-    pub fn gravity(&self) -> f32 {
-        match self {
-            EntityType::Tree => 0.0,
-            EntityType::Soul => -1.0,
-            EntityType::Fish{air:_} => 1.0,
-        }
-    }
+    
     
     fn texture(&self) -> Texture2D {
         

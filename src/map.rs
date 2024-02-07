@@ -1,10 +1,8 @@
 use grid::*;
-use macroquad::prelude::Rect;
 use macroquad::{
     color::{Color, WHITE},
     texture::Image,
 };
-use std::default;
 
 use perlin2d::PerlinNoise2D;
 
@@ -50,6 +48,21 @@ impl Pixel {
             Pixel::Lava => Color::from_rgba(247, 104, 6, 255),
             Pixel::Bedrock => Color::from_rgba(fastrand::u8(0..255), fastrand::u8(0..255), fastrand::u8(0..255), 255),
         }
+    }
+
+    pub fn light_emission(&self) -> f32 {
+        match self {
+            Pixel::Air => {0.05},
+            Pixel::Steam | Pixel::Smoke => {0.1},
+            Pixel::Water => {0.5},
+            Pixel::Lava => {0.0},
+            Pixel::Fire => {0.0},
+            _ => {1.0}
+        }
+    }
+
+    pub fn fluid(&self) -> bool {
+        matches!(self , Pixel::Lava | Pixel::Water)
     }
 
     pub fn cycle(&self) -> Pixel {
@@ -111,13 +124,14 @@ pub struct Map {
     pub size: u32,
     pub update_texture_px: Vec<(usize, usize)>,
     pub image: Image,
+    pub light_mask: Image,
     pub entities: Vec<Entity>,
     // pub heatmap: Image,
 }
 
 impl Map {
 
-
+    /// creates a randomly generated map based on perlin noise
     pub fn gen_terrain(&mut self) {
 
         self.entities = vec![];
@@ -130,13 +144,13 @@ impl Map {
     5, 
     // amplitude - The maximum absolute value that the Perlin noise can output.
     10.0, 
-    // frequeny - The number of cycles per unit length that the Perlin noise outputs.
+    // frequency - The number of cycles per unit length that the Perlin noise outputs.
     1.5, 
     // persistence - A multiplier that determines how quickly the amplitudes diminish for each successive octave in a Perlin-noise function.
     4.0, 
     // lacunarity - A multiplier that determines how quickly the frequency increases for each successive octave in a Perlin-noise function.
     2.0, 
-    // scale - A Tuple. A number that determines at what distance to view the noisemap.
+    // scale - A Tuple. A number that determines at what distance to view the noise map.
     (100.0, 100.0), 
     // bias - Amount of change in Perlin noise. U
     0.1, 
@@ -148,13 +162,13 @@ impl Map {
     5, 
     // amplitude - The maximum absolute value that the Perlin noise can output.
     10.0, 
-    // frequeny - The number of cycles per unit length that the Perlin noise outputs.
+    // frequency - The number of cycles per unit length that the Perlin noise outputs.
     1.5, 
     // persistence - A multiplier that determines how quickly the amplitudes diminish for each successive octave in a Perlin-noise function.
     4.0, 
     // lacunarity - A multiplier that determines how quickly the frequency increases for each successive octave in a Perlin-noise function.
     2.0, 
-    // scale - A Tuple. A number that determines at what distance to view the noisemap.
+    // scale - A Tuple. A number that determines at what distance to view the noise map.
     (500.0, 500.0), 
     // bias - Amount of change in Perlin noise. U
     0.1, 
@@ -166,22 +180,21 @@ impl Map {
     5, 
     // amplitude - The maximum absolute value that the Perlin noise can output.
     10.0, 
-    // frequeny - The number of cycles per unit length that the Perlin noise outputs.
+    // frequency - The number of cycles per unit length that the Perlin noise outputs.
     1.5, 
     // persistence - A multiplier that determines how quickly the amplitudes diminish for each successive octave in a Perlin-noise function.
     4.0, 
     // lacunarity - A multiplier that determines how quickly the frequency increases for each successive octave in a Perlin-noise function.
     2.0, 
-    // scale - A Tuple. A number that determines at what distance to view the noisemap.
+    // scale - A Tuple. A number that determines at what distance to view the noise map.
     (60.0, 60.0), 
     // bias - Amount of change in Perlin noise. U
     0.1, 
     // seed - A value that changes the output of a coherent-noise function.
     fastrand::i32(0..200)
 );
-    
 
-        for ((row, col), p) in new_grid.indexed_iter() {
+        for ((row, col), _) in new_grid.indexed_iter() {
             if perlin.get_noise(col as f64, row as f64) > -10.0 {
                 if perlin2 .get_noise(col as f64, row as f64) > 100.0 {
                     self.grid[(row,col)] = Pixel::Sand;
@@ -194,7 +207,6 @@ impl Map {
                 
                 if perlin3.get_noise(col as f64, row as f64) > 1200.0 {
                     self.grid[(row,col)] = Pixel::Gold;
-
                 }else {
                 self.grid[(row,col)] = Pixel::Stone;
                 }
@@ -210,7 +222,7 @@ impl Map {
             self.update_texture_px.push((row, col));
         }
         for _ in 0..10 {self.update_state()}
-        for ((row, col), p) in new_grid.indexed_iter() {
+        for ((row, col), _) in new_grid.indexed_iter() {
             let num = fastrand::u32(0..1000);
             match self.grid[(col,row)] {
                 Pixel::Water => {
@@ -238,6 +250,7 @@ impl Map {
         }
     } 
 
+    /// makes a new square map of the given `usize`
     pub fn new_square(size: usize) -> Map {
         let grid = Grid::from_vec((0..size.pow(2)).map(|_| Pixel::Air).collect(), size);
 
@@ -246,15 +259,18 @@ impl Map {
             size: size as u32,
             update_texture_px: vec![],
             image: Image::gen_image_color(size as u16, size as u16, WHITE),
+            light_mask: Image::gen_image_color(size as u16, size as u16, Color { r: 0.0, g: 0.0, b: 0.0, a: 0.3 }),
             entities: vec![],
-            // heatmap: Image::gen_image_color(size as u16, size as u16, WHITE),
         };
     }
 
+
+    /// add an entity at the given coords
     pub fn spawn_entity(&mut self, entity_type:EntityType, x: f32,y:f32) {
         self.entities.push(Entity::new(entity_type, x, y));
     }
 
+    /// makes a square of any malarial in center of map
     pub fn make_square(&mut self, pixel: Pixel) {
         let third = (self.size / 3) as usize;
 
@@ -268,30 +284,14 @@ impl Map {
             };
         }
     }
-    pub fn make_log(&mut self) {
-        let third = (self.size / 3) as usize;
+    
 
-        for ((row, col), i) in self.grid.indexed_iter_mut() {
-            *i = if row > third && row < third * 2 && col > third && col < third * 2 {
-                self.update_texture_px.push((row, col));
-                Pixel::Wood
-            } else {
-                self.update_texture_px.push((row, col));
-                Pixel::Air
-            };
-        }
-        self.grid[(third,third+1)] = Pixel::Fire;
-        self.grid[(third+1,third)] = Pixel::Fire;
-        self.grid[(third+1,third+1)] = Pixel::Fire;
-        self.grid[(third+2,third+1)] = Pixel::Fire;
-        self.grid[(third+3,third+2)] = Pixel::Fire;
-    }
 
+
+    /// updates the image based on the pixels listed in the 'update_texture_px' list
     pub fn update_image(&mut self) {
 
         for (row, col) in &self.update_texture_px {
-
-
             self.image.set_pixel(
                 *col as u32,
                 *row as u32,
