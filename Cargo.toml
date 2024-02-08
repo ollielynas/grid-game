@@ -16,7 +16,7 @@ macroquad = "0.4.4"
 perlin2d = "0.2.6"
 savefile = "0.16.5"
 savefile-derive = "0.16.5"
-
+lazy_static = "1.4.0"
 
 [profile.release]
 codegen-units = 1

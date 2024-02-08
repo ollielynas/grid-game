@@ -3,20 +3,20 @@ mod game_ui;
 mod map;
 mod player;
 mod update;
+mod profiling;
 
 use savefile::prelude::*;
 
 
 
 use macroquad::{
-    prelude::*,
-    ui::{root_ui, Skin, Style},
+    miniquad::{BlendFactor, BlendState, BlendValue, Equation}, prelude::*, ui::{root_ui, Skin, Style}
 };
 use map::{Map, Pixel};
 use player::{Item, Player};
 
 /// size of map
-const SIZE: usize = 101;
+const SIZE: usize = 301;
 
 fn window_conf() -> Conf {
     Conf {
@@ -39,7 +39,7 @@ async fn main() {
     let light_texture: Texture2D = Texture2D::from_image(&map.light_mask);
 
     texture.set_filter(FilterMode::Nearest);
-    // light_texture.set_filter(FilterMode::Nearest);
+    //light_texture.set_filter(FilterMode::Nearest);
 
     // map.make_square(map::Pixel::Water);
     // map.make_log();
@@ -54,6 +54,25 @@ async fn main() {
     let mut hover: Option<Pixel>;
 
     let mut skin = root_ui().default_skin();
+
+    let light_material = load_material(
+        ShaderSource::Glsl { 
+            vertex: GRADIENT_VERTEX_SHADER, 
+            fragment: GRADIENT_FRAGMENT_SHADER
+        },
+        MaterialParams { 
+            pipeline_params: PipelineParams {
+                color_blend: Some(BlendState::new(
+                    Equation::Add,
+                    BlendFactor::Value(BlendValue::SourceAlpha),
+                    BlendFactor::OneMinusValue(BlendValue::SourceAlpha))
+                ),
+                ..Default::default()
+            },
+            uniforms: vec![("textureSize".to_owned(), UniformType::Float2), ("canvasSize".to_owned(), UniformType::Float2)], 
+            ..Default::default() 
+        }
+    ).unwrap();
 
     root_ui().push_skin(&skin);
     loop {
@@ -133,6 +152,8 @@ async fn main() {
             },
         );
 
+        gl_use_material(&light_material);
+        light_material.set_uniform("textureSize", (map.size as f32, map.size as f32));
         draw_texture_ex(
             &light_texture,
             0.0,
@@ -142,6 +163,7 @@ async fn main() {
                 ..Default::default()
             },
         );
+        gl_use_default_material();
 
         let hit = player.make_map_box(&map, player.get_view_port(), false);
         hit.render();
@@ -185,3 +207,56 @@ async fn main() {
         next_frame().await
     }
 }
+
+const GRADIENT_FRAGMENT_SHADER: &'static str = r#"#version 130
+precision lowp float;
+uniform vec2 textureSize;
+uniform vec4 _Time;
+uniform sampler2D Texture;
+
+in vec2 uv;
+
+out vec4 color;
+
+vec3 hsb2rgb( in vec3 c ){
+    vec3 rgb = clamp(abs(mod(c.x*6.0+vec3(0.0,4.0,2.0),
+                             6.0)-3.0)-1.0,
+                     0.0,
+                     1.0 );
+    rgb = rgb*rgb*(3.0-2.0*rgb);
+    return c.z * mix(vec3(1.0), rgb, c.y);
+}
+
+void main() {
+    float time = _Time.x;
+    //vec2 coord = gl_FragCoord.xy / canvasSize.xy; // [0,1]
+    vec2 pixelCoord = uv * textureSize;
+    //vec2 t = mod(pixelCoord, 1.0);
+    //t = t * t * t * (t * (6.0 * t - 15.0) + 10.0);
+    //vec2 coord = mix(floor(pixelCoord), floor(pixelCoord) + 1.0, t);
+    
+    vec2 o1 = vec2(1.0, 0.0) / textureSize;
+    vec2 o2 = vec2(0.0, 1.0) / textureSize;
+
+    color = /*vec4(hsb2rgb(vec3(mod(sin(_Time.x) + pixelCoord.x * 0.1 + pixelCoord.y * 0.05, 1.0), 0.5, 1.0)), 1.0) **/vec4(0.0, 0.0, 0.0, 1.0) * (texture(Texture, uv) * 4.0 + texture(Texture, uv + o1) + texture(Texture, uv + o2) + texture(Texture, uv - o1) + texture(Texture, uv - o2)).a * 0.125;
+    //color = texture(Texture, coord / textureSize);
+
+    //color = vec4(0.0, 0.0, 0.0, 0.0);
+}
+"#;
+
+const GRADIENT_VERTEX_SHADER: &'static str = "#version 130
+in vec3 position;
+in vec2 texcoord;
+in vec4 color0;
+
+uniform mat4 Model;
+uniform mat4 Projection;
+
+out vec2 uv;
+
+void main() {
+    uv = texcoord;
+    gl_Position = Projection * Model * vec4(position, 1);
+}
+";
