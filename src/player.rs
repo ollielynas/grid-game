@@ -184,7 +184,7 @@ impl HitLineSet {
 
             //println!("{:?} {:?}", p1, p2);
     
-            draw_line(p1.x, p1.y, p2.x, p2.y, 0.2, BLACK);
+            draw_line(p1.x - 0.1, p1.y, p2.x + 0.1, p2.y, 0.2, BLACK);
         }
 
         for line in &self.vertical {
@@ -193,7 +193,7 @@ impl HitLineSet {
 
             //println!("{:?} {:?}", p1, p2);
     
-            draw_line(p1.x, p1.y, p2.x, p2.y, 0.2, BLACK);
+            draw_line(p1.x, p1.y - 0.1, p2.x, p2.y + 0.1, 0.2, BLACK);
         }
     }
 
