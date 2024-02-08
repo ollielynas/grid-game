@@ -12,6 +12,14 @@ impl Player {
         let mut equip_item: Option<crate::player::Item> = None;
         self.inventory.animation -= if self.inventory.open {1.0} else {-1.0} * 4.0 * delta;
         self.inventory.animation = self.inventory.animation.clamp(0.0, 1.0);
+
+        // root_ui().canvas().line(start, end, color)
+
+
+        let vb = self.get_view_port();
+
+        draw_rectangle(1.0+vb.x, vb.y+(self.inventory.animation) * 10.0 - 9.0 , self.health* 0.8, 2.0, RED);
+        draw_rectangle_lines(vb.x+1.0, vb.y+(self.inventory.animation) * 10.0 -9.0 , self.health* 0.8, 2.0, 0.2,BLACK);
         
         if self.inventory.animation != 1.0 {
         

@@ -118,7 +118,7 @@ async fn main() {
         // clear_background(Color { r: 0.8, g: 0.8, b: 0.8, a: 1.0 });
         clear_background(WHITE);
 
-        player.render();
+        
 
         if !paused {
             map.update_state(&player);
@@ -214,15 +214,18 @@ async fn main() {
 
         gl_use_default_material();
 
-
-
+        
         let hit = player.make_map_box(&map, player.get_view_port(), false);
         hit.render();
 
+        player.render();
+
         player.get_player_box(0.0, 0.0).render();
 
-        root_ui().label(None, &format!("fps: {}", get_fps()));
-        root_ui().label(None, &format!("HP: {}", player.health));
+        root_ui().label(None, " ");
+        root_ui().label(None, " ");
+        root_ui().label(None, &format!(" fps: {}", get_fps()));
+        // root_ui().label(None, &format!("HP: {}", player.health));
         if hover != Some(Pixel::Air) {
             root_ui().label(None, &format!("{:?}", hover));
         }
