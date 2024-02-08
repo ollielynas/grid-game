@@ -530,18 +530,18 @@ impl Player {
             self.vy -= 100.0
         }
 
-        self.vx *= 0.75_f32.powf(delta * 60.0);
+        self.vx *= 0.75_f32;
 
         if on_ground {
-            self.vx *= 0.7_f32.powf(delta * 60.0);
+            self.vx *= 0.7_f32;
         }
 
         if in_water {
-            self.vx *= 0.7_f32.powf(delta * 60.0);
+            self.vx *= 0.7_f32;
         }
 
         if in_water {
-            self.vy *= 0.7f32.powf(delta * 60.0);
+            self.vy *= 0.7f32;
         }
 
         if is_key_down(KeyCode::A) && self.vx > -100.0 {

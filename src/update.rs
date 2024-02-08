@@ -378,31 +378,39 @@ impl Map {
 
         if view_rect.contains(Vec2::new(player.x, player.y))  {
         let light_mask_surroundings = [
-            self.light_mask.get_pixel(col as u32 - 1, row as u32 - 1).a,
-            self.light_mask.get_pixel(col as u32 - 1, row as u32).a,
-            self.light_mask.get_pixel(col as u32 - 1, row as u32 + 1).a,
-            self.light_mask.get_pixel(col as u32, row as u32 - 1).a,
-            self.light_mask.get_pixel(col as u32, row as u32 + 1).a,
-            self.light_mask.get_pixel(col as u32 + 1, row as u32 - 1).a,
-            self.light_mask.get_pixel(col as u32 + 1, row as u32).a,
-            self.light_mask.get_pixel(col as u32 + 1, row as u32 + 1).a,
+            self.light_mask.get_pixel(col as u32 - 1, row as u32 - 1),
+            self.light_mask.get_pixel(col as u32 - 1, row as u32),
+            self.light_mask.get_pixel(col as u32 - 1, row as u32 + 1),
+            self.light_mask.get_pixel(col as u32, row as u32 - 1),
+            self.light_mask.get_pixel(col as u32, row as u32 + 1),
+            self.light_mask.get_pixel(col as u32 + 1, row as u32 - 1),
+            self.light_mask.get_pixel(col as u32 + 1, row as u32),
+            self.light_mask.get_pixel(col as u32 + 1, row as u32 + 1),
             self.grid[(u_row, u_col)].light_emission(),
         ];
 
+        let mut color = self.grid[(u_row, u_col)].light_emission();
+
+        for c in light_mask_surroundings {
+            if c.a <= color.a {
+                color = c;
+            }
+        }
+
+        
         self.light_mask.set_pixel(
-            col as u32,
-            row as u32,
-            Color {
-                r: 0.0,
-                g: 0.0,
-                b: 0.0,
-                a: (light_mask_surroundings
-                    .iter()
-                    .fold(std::f32::MAX, |a, b| a.min(*b))
-                    + 0.15)
-                    .clamp(0.0, 1.0),
-            },
-        );
+                col as u32,
+                row as u32,
+                Color {
+                    a: (color.a
+                        + 0.15)
+                        .clamp(0.0, 1.0),
+                        r: color.r,
+                        g: color.g,
+                        b: color.b,
+                },
+            );
+    
     }
     }
 }

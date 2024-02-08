@@ -69,14 +69,14 @@ impl Pixel {
         }
     }
 
-    pub fn light_emission(&self) -> f32 {
+    pub fn light_emission(&self) -> Color {
         match self {
-            Pixel::Air => {0.05},
-            Pixel::Steam | Pixel::Smoke => {0.1},
-            Pixel::Water => {0.5},
-            Pixel::Lava => {0.0},
-            Pixel::Fire => {0.0},
-            _ => {1.0}
+            Pixel::Air => {Color::new(1.0, 1.0, 1.0, 0.05)},
+            Pixel::Steam | Pixel::Smoke => {Color::new(1.0, 1.0, 1.0, 0.1)},
+            Pixel::Water => {Color::new(1.0, 1.0, 1.0, 0.5)},
+            Pixel::Lava => {Color::new(1.0, 0.0, 0.0, 0.0)},
+            Pixel::Fire => {Color::new(1.0, 0.0, 0.0, 0.0)},
+            _ => {Color::new(0.0, 0.0, 0.0, 1.0)}
         }
     }
 
