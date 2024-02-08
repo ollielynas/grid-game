@@ -24,6 +24,7 @@ pub enum Pixel {
     Oil,
     Glass,
     Lava,
+    Explosive,
 }
 
 impl Default for Pixel {
@@ -34,11 +35,11 @@ impl Default for Pixel {
 
 impl Pixel {
     pub fn all() -> impl Iterator<Item = Self> {
-        static ALL: [Pixel; 15] = [
+        static ALL: [Pixel; 16] = [
             Pixel::Air, Pixel::Sand, Pixel::Dirt, Pixel::Stone,
             Pixel::Water, Pixel::Fire, Pixel::Grass, Pixel::Wood,
             Pixel::Bedrock, Pixel::Smoke, Pixel::Steam, Pixel::Gold,
-            Pixel::Oil, Pixel::Glass, Pixel::Lava
+            Pixel::Oil, Pixel::Glass, Pixel::Lava, Pixel::Explosive
         ];
 
         ALL.into_iter()
@@ -61,6 +62,7 @@ impl Pixel {
             Pixel::Oil => Color::from_rgba(0, 0, 0, 255),
             Pixel::Glass => Color::from_rgba(100, 104, 230, 15),
             Pixel::Bedrock => Color::from_rgba(fastrand::u8(0..255), fastrand::u8(0..255), fastrand::u8(0..255), 255),
+            Pixel::Explosive => Color::from_rgba(242, 33, 5, 255),
         }
     }
 
@@ -95,7 +97,8 @@ impl Pixel {
             Pixel::Lava => Pixel::Steam,
             Pixel::Steam => Pixel::Glass,
             Pixel::Glass => Pixel::Oil,
-            Pixel::Oil => Pixel::Air,
+            Pixel::Oil => Pixel::Explosive,
+            Pixel::Explosive => Pixel::Air
         }
 
     }
@@ -107,7 +110,7 @@ impl Pixel {
     pub fn fluid_density(&self) -> Option<i32> {
         match self {
             Pixel::Air => Some(3),
-            Pixel::Sand|Pixel::Dirt|Pixel::Lava => Some(30),
+            Pixel::Sand|Pixel::Dirt|Pixel::Lava|Pixel::Explosive => Some(30),
             Pixel::Smoke => Some(1),
             Pixel::Steam => Some(1),
             Pixel::Water => Some(15),
@@ -136,6 +139,7 @@ impl Pixel {
             Pixel::Wood => 5.0,
             Pixel::Oil => 20.0,
             Pixel::Water => 50.0,
+            Pixel::Explosive => 5.0,
             _ => 0.0
         }
     }
@@ -149,7 +153,7 @@ impl Pixel {
 
     pub fn can_hit(&self) -> bool {
         match self {
-            Pixel::Glass |Pixel::Sand | Pixel::Dirt | Pixel::Bedrock | Pixel::Wood | Pixel::Stone | Pixel::Gold | Pixel::Grass => true,
+            Pixel::Glass |Pixel::Sand | Pixel::Dirt | Pixel::Bedrock | Pixel::Wood | Pixel::Stone | Pixel::Gold | Pixel::Grass | Pixel::Explosive => true,
             Pixel::Oil |Pixel::Air | Pixel::Lava | Pixel::Steam | Pixel::Water | Pixel::Fire | Pixel::Smoke => false
         }
     }
@@ -304,7 +308,8 @@ impl Map {
                 |Pixel::Wood 
                 |Pixel::Bedrock
                 |Pixel::Lava
-                |Pixel::Smoke => {}, 
+                |Pixel::Smoke
+                |Pixel::Explosive => {}, 
             }
         }
     } 
