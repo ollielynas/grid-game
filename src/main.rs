@@ -2,8 +2,10 @@ mod entity;
 mod game_ui;
 mod map;
 mod player;
+mod skin_style;
 mod update;
 
+use game_ui::home;
 use savefile::prelude::*;
 
 
@@ -30,10 +32,15 @@ fn window_conf() -> Conf {
 
 #[macroquad::main(window_conf)]
 async fn main() {
-    let mut player = Player::default();
+    
+    let skins = skin_style::get_skins();
+    
+    root_ui().push_skin(&skins[1]);
 
-    let mut map = Map::new_square(SIZE);
-    map.update_image();
+    let (mut map, mut player) = home().await;
+
+
+
 
     let texture: Texture2D = Texture2D::from_image(&map.image);
     let light_texture: Texture2D = Texture2D::from_image(&map.light_mask);
@@ -43,8 +50,8 @@ async fn main() {
 
     // map.make_square(map::Pixel::Water);
     // map.make_log();
+    
 
-    map.gen_terrain();
 
     let paused = false;
     show_mouse(false);
@@ -53,9 +60,8 @@ async fn main() {
 
     let mut hover: Option<Pixel>;
 
-    let mut skin = root_ui().default_skin();
 
-    root_ui().push_skin(&skin);
+    // root_ui().pop_skin();
     loop {
         player.update(&map);
 
@@ -96,7 +102,7 @@ async fn main() {
         let mouse_row = (pt.y as usize).clamp(2, map.size as usize - 2);
         let mouse_col = (pt.x as usize).clamp(2, map.size as usize - 2);
         hover = Some(map.grid[(mouse_row, mouse_col)]);
-        if is_mouse_button_down(MouseButton::Left) && distance < 25.0 {
+        if is_mouse_button_down(MouseButton::Left) && distance < 25.0 && !player.inventory.open {
             map.update_texture_px.push((mouse_row, mouse_col));
 
             player.use_item(&mut map, mouse_row, mouse_col)

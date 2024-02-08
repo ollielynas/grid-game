@@ -169,6 +169,7 @@ pub struct Map {
     pub image: Image,
     pub light_mask: Image,
     pub entities: Vec<Entity>,
+    pub name: String,
     // pub heatmap: Image,
 }
 
@@ -309,7 +310,7 @@ impl Map {
     } 
 
     /// makes a new square map of the given `usize`
-    pub fn new_square(size: usize) -> Map {
+    pub fn new_square(size: usize, name: String) -> Map {
         let grid = Grid::from_vec((0..size.pow(2)).map(|_| Pixel::Air).collect(), size);
 
         return Map {
@@ -319,6 +320,7 @@ impl Map {
             image: Image::gen_image_color(size as u16, size as u16, WHITE),
             light_mask: Image::gen_image_color(size as u16, size as u16, Color { r: 0.0, g: 0.0, b: 0.0, a: 0.3 }),
             entities: vec![],
+            name,
         };
     }
 

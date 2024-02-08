@@ -39,7 +39,7 @@ impl Default for Inventory {
 }
 
 impl Inventory {
-    fn creative() -> Self {
+    pub fn creative() -> Self {
         Inventory {
             items: Pixel::all().map(|x| Item::PlacePixel { pixel: x, count: 1000 }).collect(),
             open: false,
@@ -57,6 +57,8 @@ pub struct Player {
     pub health: f32,
     pub inventory: Inventory,
     pub item_in_hand: Item,
+    pub name: String,
+    pub respawn_pos: Vec2,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -245,13 +247,24 @@ impl Default for Player {
             vy: 0.0,
             health: 20.0,
             zoom: 30.0,
-            inventory: Inventory::creative(),
+            inventory: Inventory::default(),
             item_in_hand: Item::Pickaxe,
+            name: "Herobrine".to_string(),
+            respawn_pos: Vec2 { x: 50.0, y: 50.0 },
         }
     }
 }
 
 impl Player {
+    /// don't forget to set spawn point once twh world has been decided on!
+    pub fn new(name: String) -> Player {
+        let player = Player {
+            name,
+            ..Default::default()
+        };
+        return player;
+    }
+
     pub fn gain_item(&mut self, item: Item) {
         match item {
             Item::Hand => {},
