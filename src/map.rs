@@ -210,7 +210,7 @@ impl Map {
                 self.grid[(row,col)] = Pixel::Dirt;
                 }
             }
-            if perlin.get_noise(col as f64, row as f64) > 80.0 {
+            if perlin.get_noise(col as f64, row as f64) > 80.0 || ((row as f32) < self.size as f32 * 0.35 && perlin3.get_noise(col as f64, row as f64) > 50.0) {
                 
                 if perlin3.get_noise(col as f64, row as f64) > 1200.0 {
                     self.grid[(row,col)] = Pixel::Gold;
