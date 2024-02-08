@@ -36,6 +36,16 @@ impl Default for Inventory {
     }
 }
 
+impl Inventory {
+    fn creative() -> Self {
+        Inventory {
+            items: Pixel::all().map(|x| Item::PlacePixel { pixel: x, count: 1000 }).collect(),
+            open: false,
+            animation: 1.0,
+        }
+    }
+}
+
 pub struct Player {
     pub x: f32,
     pub y: f32,
@@ -233,15 +243,13 @@ impl Default for Player {
             vy: 0.0,
             health: 20.0,
             zoom: 30.0,
-            inventory: Inventory::default(),
+            inventory: Inventory::creative(),
             item_in_hand: Item::Pickaxe,
         }
     }
 }
 
 impl Player {
-
-
     pub fn gain_item(&mut self, item: Item) {
         match item {
             Item::Hand => {},

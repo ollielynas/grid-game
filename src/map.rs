@@ -33,6 +33,17 @@ impl Default for Pixel {
 }
 
 impl Pixel {
+    pub fn all() -> impl Iterator<Item = Self> {
+        static ALL: [Pixel; 15] = [
+            Pixel::Air, Pixel::Sand, Pixel::Dirt, Pixel::Stone,
+            Pixel::Water, Pixel::Fire, Pixel::Grass, Pixel::Wood,
+            Pixel::Bedrock, Pixel::Smoke, Pixel::Steam, Pixel::Gold,
+            Pixel::Oil, Pixel::Glass, Pixel::Lava
+        ];
+
+        ALL.into_iter()
+    }
+
     fn color(&self) -> Color {
         match self {
             Pixel::Air => Color::from_rgba(250, 251, 255, 0),
@@ -92,6 +103,7 @@ impl Pixel {
     pub fn is_airy(&self) -> bool {
         return matches!(self, Pixel::Air | Pixel::Fire | Pixel::Smoke | Pixel::Steam);
     }
+
     pub fn fluid_density(&self) -> Option<i32> {
         match self {
             Pixel::Air => Some(3),
@@ -107,6 +119,31 @@ impl Pixel {
             |Pixel::Glass
             |Pixel::Gold
             |Pixel::Grass => None ,
+        }
+    }
+
+    pub fn heat_product(&self) -> Option<Self> {
+        match self {
+            Pixel::Wood => Some(Pixel::Fire),
+            Pixel::Oil => Some(Pixel::Fire),
+            Pixel::Water => Some(Pixel::Steam),
+            _ => None
+        }
+    }
+
+    pub fn ignition_probability(&self) -> f32 {
+        match self {
+            Pixel::Wood => 5.0,
+            Pixel::Oil => 20.0,
+            Pixel::Water => 50.0,
+            _ => 0.0
+        }
+    }
+
+    pub fn extinguish_fire(&self) -> bool {
+        match self {
+            Pixel::Water => true,
+            _ => false
         }
     }
 

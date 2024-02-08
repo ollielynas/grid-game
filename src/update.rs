@@ -150,6 +150,42 @@ impl Map {
         self.update_texture_px.push((a.0 as usize, a.1 as usize));
     }
 
+    pub fn ignite_px(&mut self, col: i32, row: i32) -> bool {
+        if col < 0 || row < 0 || col >= self.size as i32 || row >= self.size as i32 {
+            return false;
+        }
+
+        if fastrand::f32() * 100.0 >= self.grid[(row as usize, col as usize)].ignition_probability() {
+            return false;
+        }
+
+        if let Some(px) = self.grid[(row as usize, col as usize)].heat_product() {
+            let extinguish = self.grid[(row as usize, col as usize)].extinguish_fire();
+            self.grid[(row as usize, col as usize)] = px;
+            self.update_texture_px.push((row as usize, col as usize));
+
+            return extinguish;
+        }
+
+        return false;
+    }
+
+    pub fn ignite_neighbors(&mut self, col: i32, row: i32, count: usize) -> i32 {
+        let mut neighbors = vec![(-1, 0), (0, -1), (1, 0), (0, 1)];
+
+        fastrand::shuffle(&mut neighbors);
+
+        let mut ignited = 0;
+
+        for i in 0..count {
+            if self.ignite_px(col + neighbors[i].0, row + neighbors[i].1) {
+                ignited += 1;
+            }
+        }
+
+        ignited
+    }
+
     pub fn update_px(&mut self, col: i32, row: i32, player: &Player) {
         let num = fastrand::f32() * 100.0;
         let u_row = row as usize;
@@ -210,54 +246,17 @@ impl Map {
                         self.swap_px((row, col), (row, col + 1 - side as i32));
                     }
                 }
-                if self.grid[(u_row - 1, u_col)] == Pixel::Water {
-                    if num < 1.5 {
-                        self.grid[(u_row, u_col)] = Pixel::Stone;
-                        self.update_texture_px.push((row as usize, col as usize));
-                    }
-                    self.update_texture_px
-                        .push((row as usize - 1, col as usize));
-                    self.grid[(u_row - 1, u_col)] = Pixel::Steam;
-                }
-                let mut list1 = [0, 1, 2];
-                let mut list2 = [0, 1, 2];
 
-                fastrand::shuffle(&mut list1);
-                fastrand::shuffle(&mut list2);
+                let num_extiniguish = self.ignite_neighbors(col, row, 4);
 
-                for row2 in list1 {
-                    for col2 in list2 {
-                        if self.grid[(row as usize - 1 + row2, col as usize - 1 + col2)]
-                            .is_flammable()
-                            && num < 5.0
-                        {
-                            self.grid[(row as usize - 1 + row2, col as usize - 1 + col2)] =
-                                Pixel::Fire;
-                            self.update_texture_px
-                                .push((row as usize - 1, col as usize));
-                        }
-                    }
+                if num < 1.5 * num_extiniguish as f32 {
+                    self.grid[(u_row, u_col)] = Pixel::Stone;
+                    self.update_texture_px.push((row as usize, col as usize));
                 }
             }
 
             Pixel::Fire => {
-                let mut list2: [(usize, usize); 4] = [(0,1), (2,1), (1,0), (1,2)];
-
-                fastrand::shuffle(&mut list2);
-
-                    for (row2, col2) in list2 {
-                        if self.grid[(row as usize - 1 + row2, col as usize - 1 + col2)]
-                            .is_flammable()
-                            && num < 5.0
-                        {
-                            self.grid[(row as usize - 1 + row2, col as usize - 1 + col2)] =
-                                Pixel::Fire;
-                            self.update_texture_px
-                                .push((row as usize - 1, col as usize));
-                        }
-                }
-
-                if num < 1.0 {
+                if self.ignite_neighbors(col, row, 4) > 0 || num < 1.0 {
                     self.grid[(u_row, u_col)] = Pixel::Smoke;
                     self.update_texture_px.push((row as usize, col as usize));
                 }
