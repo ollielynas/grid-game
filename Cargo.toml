@@ -16,6 +16,8 @@ macroquad = "0.4.4"
 perlin2d = "0.2.6"
 savefile = "0.16.5"
 savefile-derive = "0.16.5"
+strum = "0.26.1"
+strum_macros = "0.26.1"
 
 
 [profile.release]

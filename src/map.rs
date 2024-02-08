@@ -2,18 +2,20 @@ use grid::*;
 use macroquad::{
     color::{Color, WHITE}, math::Rect, texture::Image
 };
+use strum_macros::EnumIter;
 
 use perlin2d::PerlinNoise2D;
 
 use crate::entity::{Entity, EntityType};
 
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug, EnumIter)]
 pub enum Pixel {
     Air,
     Sand,
     Dirt,
     Stone,
     Water,
+    Candle,
     Fire,
     Grass,
     Wood,
@@ -41,7 +43,7 @@ impl Pixel {
             Pixel::Bedrock, Pixel::Smoke, Pixel::Steam, Pixel::Gold,
             Pixel::Oil, Pixel::Glass, Pixel::Lava, Pixel::Explosive
         ];
-
+        
         ALL.into_iter()
     }
 
@@ -60,6 +62,7 @@ impl Pixel {
             Pixel::Gold => Color::from_rgba(205, 127, 50, 255),
             Pixel::Lava => Color::from_rgba(247, 104, 6, 255),
             Pixel::Oil => Color::from_rgba(0, 0, 0, 255),
+            Pixel::Candle => Color::from_rgba(239, 230, 211, 255),
             Pixel::Glass => Color::from_rgba(100, 104, 230, 15),
             Pixel::Bedrock => Color::from_rgba(fastrand::u8(0..255), fastrand::u8(0..255), fastrand::u8(0..255), 255),
             Pixel::Explosive => Color::from_rgba(242, 33, 5, 255),
@@ -98,7 +101,8 @@ impl Pixel {
             Pixel::Steam => Pixel::Glass,
             Pixel::Glass => Pixel::Oil,
             Pixel::Oil => Pixel::Explosive,
-            Pixel::Explosive => Pixel::Air
+            Pixel::Explosive => Pixel::Candle,
+            Pixel::Candle => Pixel::Air
         }
 
     }
@@ -119,6 +123,7 @@ impl Pixel {
             Pixel::Bedrock
             |Pixel::Wood 
             |Pixel::Stone
+            |Pixel::Candle
             |Pixel::Glass
             |Pixel::Gold => None,
         }
@@ -150,9 +155,18 @@ impl Pixel {
         }
     }
 
+    pub fn player_damage(&self) -> f32 {
+        match self {
+            Self::Fire => 1.0,
+            Self::Steam => 0.1,
+            Self::Lava => 10.0,
+            _ => 0.0,
+        }
+    } 
+
     pub fn can_hit(&self) -> bool {
         match self {
-            Pixel::Glass |Pixel::Sand | Pixel::Dirt | Pixel::Bedrock | Pixel::Wood | Pixel::Stone | Pixel::Gold | Pixel::Grass | Pixel::Explosive => true,
+            Pixel::Candle | Pixel::Glass |Pixel::Sand | Pixel::Dirt | Pixel::Bedrock | Pixel::Wood | Pixel::Stone | Pixel::Gold | Pixel::Grass | Pixel::Explosive => true,
             Pixel::Oil |Pixel::Air | Pixel::Lava | Pixel::Steam | Pixel::Water | Pixel::Fire | Pixel::Smoke => false
         }
     }
@@ -161,9 +175,7 @@ impl Pixel {
         self.fluid_density().unwrap_or(69) < p.fluid_density().unwrap_or(98)
     }
 
-    pub fn is_flammable(&self) -> bool {
-        return matches!(self, Pixel::Wood | Pixel::Oil);
-    }
+
 }
 
 pub struct Map {
@@ -298,6 +310,7 @@ impl Map {
                 },
                 |Pixel::Air
                 |Pixel::Sand
+                |Pixel::Candle
                 |Pixel::Dirt
                 |Pixel::Stone
                 |Pixel::Glass
@@ -366,7 +379,7 @@ impl Map {
             }
         }
 
-        grid
+        return grid;
     }
 
     /// updates the image based on the pixels listed in the 'update_texture_px' list

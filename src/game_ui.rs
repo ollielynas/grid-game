@@ -16,10 +16,11 @@ impl Player {
         if self.inventory.animation != 1.0 {
         
                 widgets::Window::new(128, vec2(100., 100.0 ), vec2(screen_width() - 200.0, screen_height() - 200.0))
+                
                     .label("inventory")
                     .titlebar(true)
                     .ui(&mut *root_ui(), |ui| {
-                        Group::new(9999 as u64+99, Vec2::new(screen_width() - 200.0, 80.)).ui(ui, |ui| {
+                        Group::new(9999 as u64+99, Vec2::new(screen_width() - 200.0, 100.)).ui(ui, |ui| {
                             if ui.button(None, "Holding: ") {
                                 
                             }

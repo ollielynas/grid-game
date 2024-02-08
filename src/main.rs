@@ -155,6 +155,7 @@ async fn main() {
         player.get_player_box(0.0, 0.0).render();
 
         root_ui().label(None, &format!("fps: {}", get_fps()));
+        root_ui().label(None, &format!("HP: {}", player.health));
         if hover != Some(Pixel::Air) {
             root_ui().label(None, &format!("{:?}", hover));
         }

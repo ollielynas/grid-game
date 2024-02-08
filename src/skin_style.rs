@@ -23,7 +23,7 @@ pub fn get_skins() -> Vec<Skin> {
                 )
                 .unwrap(),
             )
-            .background_margin(RectOffset::new(20.0, 20.0, 10.0, 10.0))
+            .background_margin(RectOffset::new(20.0, 20.0, 10.0, 20.0))
             .margin(RectOffset::new(-20.0, -30.0, 0.0, 0.0))
             .build();
 
@@ -96,7 +96,7 @@ pub fn get_skins() -> Vec<Skin> {
                 .unwrap(),
             )
             .background_margin(RectOffset::new(52.0, 52.0, 52.0, 52.0))
-            .margin(RectOffset::new(-30.0, 0.0, -30.0, 0.0))
+            .margin(RectOffset::new(-30.0, 0.0, -30.0, 20.0))
             .build();
 
         let button_style = root_ui()
