@@ -1,7 +1,6 @@
 use grid::*;
 use macroquad::{
-    color::{Color, WHITE},
-    texture::Image,
+    color::{Color, WHITE}, math::Rect, texture::Image
 };
 
 use perlin2d::PerlinNoise2D;
@@ -34,6 +33,17 @@ impl Default for Pixel {
 }
 
 impl Pixel {
+    pub fn all() -> impl Iterator<Item = Self> {
+        static ALL: [Pixel; 15] = [
+            Pixel::Air, Pixel::Sand, Pixel::Dirt, Pixel::Stone,
+            Pixel::Water, Pixel::Fire, Pixel::Grass, Pixel::Wood,
+            Pixel::Bedrock, Pixel::Smoke, Pixel::Steam, Pixel::Gold,
+            Pixel::Oil, Pixel::Glass, Pixel::Lava
+        ];
+
+        ALL.into_iter()
+    }
+
     fn color(&self) -> Color {
         match self {
             Pixel::Air => Color::from_rgba(250, 251, 255, 0),
@@ -93,6 +103,7 @@ impl Pixel {
     pub fn is_airy(&self) -> bool {
         return matches!(self, Pixel::Air | Pixel::Fire | Pixel::Smoke | Pixel::Steam);
     }
+
     pub fn fluid_density(&self) -> Option<i32> {
         match self {
             Pixel::Air => Some(3),
@@ -107,6 +118,31 @@ impl Pixel {
             |Pixel::Stone
             |Pixel::Glass
             |Pixel::Gold => None ,
+        }
+    }
+
+    pub fn heat_product(&self) -> Option<Self> {
+        match self {
+            Pixel::Wood => Some(Pixel::Fire),
+            Pixel::Oil => Some(Pixel::Fire),
+            Pixel::Water => Some(Pixel::Steam),
+            _ => None
+        }
+    }
+
+    pub fn ignition_probability(&self) -> f32 {
+        match self {
+            Pixel::Wood => 5.0,
+            Pixel::Oil => 20.0,
+            Pixel::Water => 50.0,
+            _ => 0.0
+        }
+    }
+
+    pub fn extinguish_fire(&self) -> bool {
+        match self {
+            Pixel::Water => true,
+            _ => false
         }
     }
 
@@ -308,7 +344,23 @@ impl Map {
     }
     
 
+    pub fn get_region(&self, rect: Rect) -> Grid<Pixel> {
+        let low_col = (rect.left().floor() as i64).clamp(0, self.size as i64 - 1) as usize;
+        let hi_col = (rect.right().ceil() as i64).clamp(0, self.size as i64) as usize;
 
+        let low_row = (rect.top().floor() as i64).clamp(0, self.size as i64 - 1) as usize;
+        let hi_row = (rect.bottom().ceil() as i64).clamp(0, self.size as i64) as usize;
+
+        let mut grid = Grid::new(hi_row - low_row, hi_col - low_col);
+
+        for i in low_row..hi_row {
+            for j in low_col..hi_col {
+                grid[(i - low_row, j - low_col)] = self.grid[(i, j)]; 
+            }
+        }
+
+        grid
+    }
 
     /// updates the image based on the pixels listed in the 'update_texture_px' list
     pub fn update_image(&mut self) {

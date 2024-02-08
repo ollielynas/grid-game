@@ -38,6 +38,16 @@ impl Default for Inventory {
     }
 }
 
+impl Inventory {
+    fn creative() -> Self {
+        Inventory {
+            items: Pixel::all().map(|x| Item::PlacePixel { pixel: x, count: 1000 }).collect(),
+            open: false,
+            animation: 1.0,
+        }
+    }
+}
+
 pub struct Player {
     pub x: f32,
     pub y: f32,
@@ -235,15 +245,13 @@ impl Default for Player {
             vy: 0.0,
             health: 20.0,
             zoom: 30.0,
-            inventory: Inventory::default(),
+            inventory: Inventory::creative(),
             item_in_hand: Item::Pickaxe,
         }
     }
 }
 
 impl Player {
-
-
     pub fn gain_item(&mut self, item: Item) {
         match item {
             Item::Hand => {},
@@ -442,8 +450,8 @@ impl Player {
                     match collision.dir {
                         CollisionDirection::Left | CollisionDirection::Right => {
                             let direction = self.vx.signum() * 0.04;
-                            if  self.get_player_box(0.0,0.0).get_collision_with(&terain_hit, Vec2::new(0.0 ,-1.0)).is_none()
-                            && self.get_player_box(0.0,-1.001).get_collision_with(&terain_hit, Vec2::new(direction ,0.0)).is_none()  {
+                            if  self.get_player_box(0.0,0.0).get_collision_with(&terain_hit, Vec2::new(0.0 ,-1.04)).is_none()
+                            && self.get_player_box(0.0,-1.04).get_collision_with(&terain_hit, Vec2::new(direction ,0.0)).is_none()  {
                                 self.y -= 1.04;
                                 // self.vy += direction * 10.1;
                             }else {
@@ -465,26 +473,43 @@ impl Player {
             }
         }
 
-        self.vy += if self.vy > 50.0 {
-            0.0
-        } else {
-            10.0 * delta * 60.0
-        };
+        let region = map.get_region(Rect::new(self.x, self.y, 1.95, 2.95));
+        let mut in_water = false;
 
-        let in_water = false;
-
-        if on_ground && is_key_down(KeyCode::Space) && self.vy > -100.0 {
-            if in_water {
-                self.vy -= 10.0;
-            } else {
-                self.vy -= 100.0;
+        for pixel in region.iter() {
+            if *pixel == Pixel::Water {
+                in_water = true;
             }
         }
 
-        self.vx *= 0.75_f32;
+        let max_falling_speed = if in_water {
+            10.0
+        } else {
+            50.0
+        };
+
+        self.vy += if self.vy > max_falling_speed {
+            0.0
+        } else {
+            max_falling_speed * delta * 12.0
+        };
+
+        if on_ground && is_key_down(KeyCode::Space) && self.vy > -100.0 {
+            self.vy -= 100.0
+        }
+
+        self.vx *= 0.75_f32.powf(delta * 60.0);
 
         if on_ground {
-            self.vx *= 0.7_f32;
+            self.vx *= 0.7_f32.powf(delta * 60.0);
+        }
+
+        if in_water {
+            self.vx *= 0.7_f32.powf(delta * 60.0);
+        }
+
+        if in_water {
+            self.vy *= 0.7f32.powf(delta * 60.0);
         }
 
         if is_key_down(KeyCode::A) && self.vx > -100.0 {
@@ -494,7 +519,5 @@ impl Player {
         if is_key_down(KeyCode::D) && self.vx < 100.0 {
             self.vx += 10.0;
         }
-
-
     }
 }
