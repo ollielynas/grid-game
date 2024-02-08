@@ -224,7 +224,7 @@ async fn main() {
 
         root_ui().label(None, " ");
         root_ui().label(None, " ");
-        root_ui().label(None, &format!(" fps: {}", get_fps()));
+        root_ui().label(None, &format!("  fps: {}", get_fps()));
         // root_ui().label(None, &format!("HP: {}", player.health));
         if hover != Some(Pixel::Air) {
             root_ui().label(None, &format!("{:?}", hover));

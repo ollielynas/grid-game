@@ -17,9 +17,12 @@ impl Player {
 
 
         let vb = self.get_view_port();
-
+        
+        draw_rectangle(1.0+vb.x, vb.y+(self.inventory.animation) * 10.0 - 9.0 , 20.0* 0.8, 2.0, GRAY);
+        draw_rectangle_lines(vb.x+1.0, vb.y+(self.inventory.animation) * 10.0 -9.0 , 20.0* 0.8, 2.0, 0.4,BLACK);
+        
         draw_rectangle(1.0+vb.x, vb.y+(self.inventory.animation) * 10.0 - 9.0 , self.health* 0.8, 2.0, RED);
-        draw_rectangle_lines(vb.x+1.0, vb.y+(self.inventory.animation) * 10.0 -9.0 , self.health* 0.8, 2.0, 0.2,BLACK);
+        draw_rectangle_lines(vb.x+1.0, vb.y+(self.inventory.animation) * 10.0 -9.0 , self.health* 0.8, 2.0, 0.4,BLACK);
         
         if self.inventory.animation != 1.0 {
         
