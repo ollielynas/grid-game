@@ -110,7 +110,7 @@ impl Pixel {
     pub fn fluid_density(&self) -> Option<i32> {
         match self {
             Pixel::Air => Some(3),
-            Pixel::Sand|Pixel::Dirt|Pixel::Lava|Pixel::Explosive => Some(30),
+            Pixel::Sand|Pixel::Dirt|Pixel::Lava|Pixel::Grass|Pixel::Explosive => Some(30),
             Pixel::Smoke => Some(1),
             Pixel::Steam => Some(1),
             Pixel::Water => Some(15),
@@ -120,8 +120,7 @@ impl Pixel {
             |Pixel::Wood 
             |Pixel::Stone
             |Pixel::Glass
-            |Pixel::Gold
-            |Pixel::Grass => None ,
+            |Pixel::Gold => None,
         }
     }
 
