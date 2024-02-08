@@ -1,7 +1,6 @@
 use grid::*;
 use macroquad::{
-    color::{Color, WHITE},
-    texture::Image,
+    color::{Color, WHITE}, math::Rect, texture::Image
 };
 
 use perlin2d::PerlinNoise2D;
@@ -309,7 +308,23 @@ impl Map {
     }
     
 
+    pub fn get_region(&self, rect: Rect) -> Grid<Pixel> {
+        let low_col = (rect.left().floor() as i64).clamp(0, self.size as i64 - 1) as usize;
+        let hi_col = (rect.right().ceil() as i64).clamp(0, self.size as i64) as usize;
 
+        let low_row = (rect.top().floor() as i64).clamp(0, self.size as i64 - 1) as usize;
+        let hi_row = (rect.bottom().ceil() as i64).clamp(0, self.size as i64) as usize;
+
+        let mut grid = Grid::new(hi_row - low_row, hi_col - low_col);
+
+        for i in low_row..hi_row {
+            for j in low_col..hi_col {
+                grid[(i - low_row, j - low_col)] = self.grid[(i, j)]; 
+            }
+        }
+
+        grid
+    }
 
     /// updates the image based on the pixels listed in the 'update_texture_px' list
     pub fn update_image(&mut self) {
