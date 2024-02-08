@@ -440,8 +440,8 @@ impl Player {
                     match collision.dir {
                         CollisionDirection::Left | CollisionDirection::Right => {
                             let direction = self.vx.signum() * 0.04;
-                            if  self.get_player_box(0.0,0.0).get_collision_with(&terain_hit, Vec2::new(0.0 ,-1.0)).is_none()
-                            && self.get_player_box(0.0,-1.001).get_collision_with(&terain_hit, Vec2::new(direction ,0.0)).is_none()  {
+                            if  self.get_player_box(0.0,0.0).get_collision_with(&terain_hit, Vec2::new(0.0 ,-1.04)).is_none()
+                            && self.get_player_box(0.0,-1.04).get_collision_with(&terain_hit, Vec2::new(direction ,0.0)).is_none()  {
                                 self.y -= 1.04;
                                 // self.vy += direction * 10.1;
                             }else {
