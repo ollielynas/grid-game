@@ -1,5 +1,8 @@
+use std::default;
+
+use egui::util::hash;
 use macroquad::{experimental::animation, math::{vec2, Vec2}, miniquad::Context, time::get_frame_time, ui::{root_ui, widgets::{self, Group, Popup}}, window::{screen_height, screen_width}, Window};
-use crate::player::{Inventory, Player};
+use crate::{map::Map, player::{Inventory, Player}};
 use macroquad::prelude::*;
 
 impl Player {
@@ -13,17 +16,18 @@ impl Player {
         if self.inventory.animation != 1.0 {
         
                 widgets::Window::new(128, vec2(100., 100.0 ), vec2(screen_width() - 200.0, screen_height() - 200.0))
+                
                     .label("inventory")
                     .titlebar(true)
                     .ui(&mut *root_ui(), |ui| {
-                        Group::new(9999 as u64+99, Vec2::new(screen_width() - 200.0, 80.)).ui(ui, |ui| {
+                        Group::new(9999 as u64+99, Vec2::new(screen_width() - 200.0, 100.)).ui(ui, |ui| {
                             if ui.button(None, "Holding: ") {
                                 
                             }
                             ui.label(None, &format!("{:?}", self.item_in_hand));
                         });
                         for (i,item) in self.inventory.items.iter().enumerate() {
-                            Group::new(i as u64+99, Vec2::new(screen_width() - 200.0, 80.)).ui(ui, |ui| {
+                            Group::new(i as u64+99, Vec2::new(screen_width() - 200.0, 100.)).ui(ui, |ui| {
                                 if ui.button(None, "Equip") {
                                     equip_item = Some(item.clone());
                                 }
@@ -55,4 +59,120 @@ impl Player {
 
     
 }
+}
+
+
+pub async fn home() -> (Map, Player) {
+
+    let mut map: Option<Map> = None;
+    let mut player: Option<Player> =  None;
+    loop {
+        clear_background(WHITE);
+        
+        root_ui().label(None, "Game Title");
+        root_ui().separator();
+        if let Some(ref map2) = map {
+            root_ui().label(None, &format!("Loaded Map: {}", map2.name))
+        }
+        if let Some(ref player2) = player {
+            root_ui().label(None, &format!("Loaded Player: {}", player2.name))
+        }
+        root_ui().separator();
+        
+        if root_ui().button(None, "New Player") {
+            player = Some(player_gen().await)
+        }
+        if root_ui().button(None, "Load Player") {
+        }
+        root_ui().separator();
+
+        
+        if root_ui().button(None, "New Map") {
+            map = Some(map_gen().await)
+        }
+        if root_ui().button(None, "load map") {
+        }
+        
+        
+        if map.is_some() && player.is_some() {
+            if root_ui().button(None, "Start Playing!") {
+                let mut final_player = player.unwrap();
+                let mut final_map = map.unwrap();
+                final_map.update_image();
+                let respawn_point = Vec2::new(final_map.size as f32 / 2.0 - 1.0, 4.0);
+                
+                final_player.x = respawn_point.x;
+                final_player.y = respawn_point.y;
+                
+                final_player.respawn_pos = respawn_point;
+                
+                return (final_map, final_player);
+            }
+        }
+        if root_ui().button(None, "Debug") {
+            player = Some(Player::new("debug".to_owned()));
+            map = Some(Map::new_square(200, "debug".to_owned()));
+            let mut final_player = player.unwrap();
+                let mut final_map = map.unwrap();
+                final_map.gen_terrain();
+                final_map.update_image();
+                final_player.inventory = Inventory::creative();
+                let respawn_point = Vec2::new(final_map.size as f32 / 2.0 - 1.0, 4.0);
+
+                final_player.x = respawn_point.x;
+                final_player.y = respawn_point.y;
+
+                final_player.respawn_pos = respawn_point;
+
+                return (final_map, final_player);
+        }
+
+
+
+        next_frame().await
+    };
+}
+
+
+pub async fn player_gen() -> Player {
+
+    let mut name = "Player Name Here".to_owned();
+    let player: Player;
+    loop {
+        clear_background(WHITE);
+
+        root_ui().label(None, "New Player");
+        root_ui().input_text(2, "Name", &mut name);
+        if root_ui().button(None, "Create") {
+            player = Player::new(name);
+            return player;
+        }
+
+        next_frame().await
+    };
+}
+
+
+pub async fn map_gen() -> Map {
+
+    let mut map_size = 500.0;
+    let mut seed = fastrand::i32(1000000000..2147483647).to_string();
+    let mut name = "Map Name Here".to_owned();
+    let mut map: Map;
+    loop {
+        clear_background(WHITE);
+
+        root_ui().label(None, "New World");
+        root_ui().slider(0, "World Size", 101.0..5000.0, &mut map_size);
+        root_ui().input_text(2, "Name", &mut name);
+        root_ui().input_text(3, "Seed", &mut seed);
+        if root_ui().button(None, "Create") {
+            fastrand::seed(hash(seed.clone()));
+            map = Map::new_square(map_size as usize, name.clone());
+            map.gen_terrain();
+            return map;
+        }
+
+        next_frame().await
+    };
 }

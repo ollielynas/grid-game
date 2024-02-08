@@ -1,5 +1,6 @@
 use std::default;
 use savefile_derive::Savefile;
+use strum::IntoEnumIterator;
 
 use macroquad::{
     camera::Camera2D, color::{BLACK, RED}, input::{get_char_pressed, is_key_down, mouse_position}, math::{Rect, Vec2}, miniquad::KeyCode, shapes::draw_line, time::{get_fps, get_frame_time}, window::{screen_height, screen_width}
@@ -7,8 +8,6 @@ use macroquad::{
 
 use crate::{entity::Entity, map::Pixel};
 use crate::map::Map;
-
-const SPEED: f32 = 100.0;
 
 
 
@@ -39,9 +38,9 @@ impl Default for Inventory {
 }
 
 impl Inventory {
-    fn creative() -> Self {
+    pub fn creative() -> Self {
         Inventory {
-            items: Pixel::all().map(|x| Item::PlacePixel { pixel: x, count: 1000 }).collect(),
+            items: Pixel::iter().map(|x| Item::PlacePixel { pixel: x, count: 1000 }).collect(),
             open: false,
             animation: 1.0,
         }
@@ -57,6 +56,8 @@ pub struct Player {
     pub health: f32,
     pub inventory: Inventory,
     pub item_in_hand: Item,
+    pub name: String,
+    pub respawn_pos: Vec2,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -245,19 +246,30 @@ impl Default for Player {
             vy: 0.0,
             health: 20.0,
             zoom: 30.0,
-            inventory: Inventory::creative(),
+            inventory: Inventory::default(),
             item_in_hand: Item::Pickaxe,
+            name: "Herobrine".to_string(),
+            respawn_pos: Vec2 { x: 50.0, y: 50.0 },
         }
     }
 }
 
 impl Player {
+    /// don't forget to set spawn point once twh world has been decided on!
+    pub fn new(name: String) -> Player {
+        let player = Player {
+            name,
+            ..Default::default()
+        };
+        return player;
+    }
+
     pub fn gain_item(&mut self, item: Item) {
         match item {
             Item::Hand => {},
             Item::Pickaxe => {
                 if !self.inventory.items.contains(&Item::Pickaxe) {
-                    self.inventory.items.push(Item::Pickaxe)
+                    self.inventory.items.insert(0,Item::Pickaxe)
                 }
             },
             Item::SpawnEntity { entity, count } => {
@@ -271,7 +283,7 @@ impl Player {
                     }
                 }
                 if !added_count {
-                    self.inventory.items.push(Item::SpawnEntity { entity, count})
+                    self.inventory.items.insert(0,Item::SpawnEntity { entity, count})
                 }
             },
             Item::PlacePixel { pixel, count } => {
@@ -285,7 +297,7 @@ impl Player {
                     }
                 }
                 if !added_count {
-                    self.inventory.items.push(Item::PlacePixel { pixel, count})
+                    self.inventory.items.insert(0,Item::PlacePixel { pixel, count})
                 }
             },
         }
@@ -405,6 +417,12 @@ impl Player {
         res
     }
 
+    fn respawn(&mut self) {
+        self.health = 20.0;
+        self.x = self.respawn_pos.x;
+        self.y = self.respawn_pos.y;
+    }
+
     pub fn get_player_box(&self, offset_x: f32, offset_y: f32) -> HitLineSet {
         let mut res = HitLineSet {
             vertical: vec![],
@@ -420,9 +438,23 @@ impl Player {
         res
     }
 
+    pub fn rect(&self) -> Rect {Rect::new(self.x, self.y, 1.95, 2.95)}
+
     pub fn update(&mut self, map: &Map) {
         let delta = get_frame_time();
         let mut remaining = delta;
+
+        let mut damage: f32 = 0.0;
+
+        for ((row, col), pixel) in map.get_region(self.rect()).indexed_iter() {
+            damage = damage.max(pixel.player_damage());
+        }
+
+        self.health -= damage * delta * 2.0;
+
+        if self.health < 0.0 {
+            self.respawn()
+        }
 
         let terain_hit = self.make_map_box(map, Rect::new(self.x - 20.0, self.y - 20.0, 40.0, 40.0), true);
 
@@ -473,7 +505,7 @@ impl Player {
             }
         }
 
-        let region = map.get_region(Rect::new(self.x, self.y, 1.95, 2.95));
+        let region = map.get_region(self.rect());
         let mut in_water = false;
 
         for pixel in region.iter() {

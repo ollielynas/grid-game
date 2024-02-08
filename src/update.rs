@@ -198,7 +198,7 @@ impl Map {
                             }
                         } else if *target_px != Pixel::Bedrock {
                             if fastrand::f32() < 0.8 {
-                                *target_px = Pixel::Fire;
+                                *target_px = if fastrand::f32() <= 0.8 {Pixel::Fire} else {Pixel::Air};
                             }
                         }
                     }
@@ -250,6 +250,12 @@ impl Map {
                     if self.grid[(u_row + 1, u_col - 1 + side)].less_dense(Pixel::Sand) {
                         self.swap_px((row, col), (row + 1, col + side as i32 - 1));
                     }
+                }
+            }
+
+            Pixel::Candle => {
+                if self.grid[(u_row - 1, u_col)].is_airy() && num > 80.0 {
+                    self.grid[(u_row - 1, u_col)] = Pixel::Fire;
                 }
             }
 
