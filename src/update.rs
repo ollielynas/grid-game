@@ -150,21 +150,62 @@ impl Map {
         self.update_texture_px.push((a.0 as usize, a.1 as usize));
     }
 
-    pub fn ignite_px(&mut self, col: i32, row: i32) -> bool {
+    pub fn ignite_px(&mut self, col: i32, row: i32, force: bool) -> bool {
         if col < 0 || row < 0 || col >= self.size as i32 || row >= self.size as i32 {
             return false;
         }
 
-        if fastrand::f32() * 100.0 >= self.grid[(row as usize, col as usize)].ignition_probability() {
+        if force || fastrand::f32() * 100.0 >= self.grid[(row as usize, col as usize)].ignition_probability() {
             return false;
         }
 
-        if let Some(px) = self.grid[(row as usize, col as usize)].heat_product() {
-            let extinguish = self.grid[(row as usize, col as usize)].extinguish_fire();
-            self.grid[(row as usize, col as usize)] = px;
-            self.update_texture_px.push((row as usize, col as usize));
+        match self.grid[(row as usize, col as usize)] {
+            px if px.heat_product().is_some() => {
+                let extinguish = px.extinguish_fire();
+                self.grid[(row as usize, col as usize)] = px.heat_product().unwrap();
+                self.update_texture_px.push((row as usize, col as usize));
 
-            return extinguish;
+                return extinguish;
+            },
+
+            Pixel::Explosive => {
+                const RADIUS: i32 = 4;
+
+                self.grid[(row as usize, col as usize)] = Pixel::Air;
+
+                for dr in -RADIUS..=RADIUS {
+                    let target_row = row + dr;
+
+                    if target_row < 0 || target_row >= self.size as i32 {
+                        continue;
+                    }
+
+                    let height = ((RADIUS * RADIUS - dr * dr) as f64).sqrt().round() as i32;
+                    
+                    for dc in -height..=height {
+                        let target_col = col + dc;
+
+                        if target_col < 0 || target_col >= self.size as i32 {
+                            continue;
+                        }
+
+                        let target_px = &mut self.grid[(target_row as usize, target_col as usize)];
+                        self.update_texture_px.push((target_row as usize, target_col as usize));
+
+                        if target_px.ignition_probability() > 0.0 {
+                            if fastrand::f32() < 0.8 {
+                                self.ignite_px(target_col, target_row, true);
+                            }
+                        } else if *target_px != Pixel::Bedrock {
+                            if fastrand::f32() < 0.8 {
+                                *target_px = Pixel::Fire;
+                            }
+                        }
+                    }
+                }
+            },
+
+            _ => {}
         }
 
         return false;
@@ -178,7 +219,7 @@ impl Map {
         let mut ignited = 0;
 
         for i in 0..count {
-            if self.ignite_px(col + neighbors[i].0, row + neighbors[i].1) {
+            if self.ignite_px(col + neighbors[i].0, row + neighbors[i].1, false) {
                 ignited += 1;
             }
         }
@@ -207,6 +248,15 @@ impl Map {
                 if self.grid[(u_row + 1, u_col)] == Pixel::Sand {
                     let side = fastrand::choice([0, 2]).unwrap_or(1);
                     if self.grid[(u_row + 1, u_col - 1 + side)].less_dense(Pixel::Sand) {
+                        self.swap_px((row, col), (row + 1, col + side as i32 - 1));
+                    }
+                }
+            }
+
+            Pixel::Explosive => {
+                if self.grid[(u_row + 1, u_col)] == Pixel::Explosive {
+                    let side = fastrand::choice([0, 2]).unwrap_or(1);
+                    if self.grid[(u_row + 1, u_col - 1 + side)].less_dense(Pixel::Explosive) {
                         self.swap_px((row, col), (row + 1, col + side as i32 - 1));
                     }
                 }
