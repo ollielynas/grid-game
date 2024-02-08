@@ -3,9 +3,11 @@ use std::clone;
 
 use grid::Grid;
 use macroquad::{miniquad::FilterMode, texture::Texture2D, time::get_frame_time};
+use savefile_derive::Savefile;
 
 use crate::map::Pixel;
 #[derive(PartialEq, Debug, Clone)]
+// #[derive(PartialEq, Debug, Clone, Savefile)]
 pub struct Entity {
     pub x: f32,
     pub y: f32,

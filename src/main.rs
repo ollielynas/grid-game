@@ -4,6 +4,10 @@ mod map;
 mod player;
 mod update;
 
+use savefile::prelude::*;
+
+
+
 use macroquad::{
     prelude::*,
     ui::{root_ui, Skin, Style},
@@ -12,7 +16,7 @@ use map::{Map, Pixel};
 use player::{Item, Player};
 
 /// size of map
-const SIZE: usize = 301;
+const SIZE: usize = 101;
 
 fn window_conf() -> Conf {
     Conf {

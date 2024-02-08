@@ -1,4 +1,5 @@
 use std::default;
+use savefile_derive::Savefile;
 
 use macroquad::{
     camera::Camera2D, color::{BLACK, RED}, input::{get_char_pressed, is_key_down, mouse_position}, math::{Rect, Vec2}, miniquad::KeyCode, shapes::draw_line, time::{get_fps, get_frame_time}, window::{screen_height, screen_width}
@@ -12,6 +13,7 @@ const SPEED: f32 = 100.0;
 
 
 #[derive(PartialEq, Debug, Clone)]
+// #[derive(PartialEq, Debug, Clone, Savefile)]
 pub enum Item {
     Hand,
     Pickaxe,
