@@ -58,6 +58,7 @@ pub struct Player {
     pub item_in_hand: Item,
     pub name: String,
     pub respawn_pos: Vec2,
+    jump_height_timer: f32,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -250,6 +251,7 @@ impl Default for Player {
             item_in_hand: Item::Pickaxe,
             name: "Herobrine".to_string(),
             respawn_pos: Vec2 { x: 50.0, y: 50.0 },
+            jump_height_timer: 0.0,
         }
     }
 }
@@ -526,8 +528,16 @@ impl Player {
             max_falling_speed * delta * 12.0
         };
 
+        self.jump_height_timer -= delta;
+        self.jump_height_timer = self.jump_height_timer.clamp(0.0, 1.0);
+
         if (on_ground | in_water) && is_key_down(KeyCode::Space) && self.vy > -100.0 {
-            self.vy -= if in_water {10.0} else {100.0}
+            self.vy -= if in_water {10.0} else {50.0};
+            self.jump_height_timer = 0.4;
+        }
+
+        if is_key_down(KeyCode::Space) && self.vy > -100.0 && self.jump_height_timer > 0.0 {
+            self.vy -= 6.0;
         }
 
         self.vx *= 0.75_f32;
@@ -544,12 +554,18 @@ impl Player {
             self.vy *= 0.7f32;
         }
 
-        if is_key_down(KeyCode::A) && self.vx > -100.0 {
+        if is_key_down(KeyCode::A) && self.vx > -500.0 {
             self.vx -= 8.0;
         }
+        // if is_key_down(KeyCode::A) && self.vx > -500.0 && on_ground {
+        //     self.vx -= 4.0;
+        // }
 
-        if is_key_down(KeyCode::D) && self.vx < 100.0 {
+        if is_key_down(KeyCode::D) && self.vx < 500.0 {
             self.vx += 8.0;
         }
+        // if is_key_down(KeyCode::D) && self.vx < 500.0 && on_ground {
+        //     self.vx +=8.0;
+        // }
     }
 }
