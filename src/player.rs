@@ -533,11 +533,11 @@ impl Player {
 
         if (on_ground | in_water) && is_key_down(KeyCode::Space) && self.vy > -100.0 {
             self.vy -= if in_water {10.0} else {50.0};
-            self.jump_height_timer = 0.4;
+            self.jump_height_timer = 0.2;
         }
 
-        if is_key_down(KeyCode::Space) && self.vy > -100.0 && self.jump_height_timer > 0.0 {
-            self.vy -= 6.0;
+        if is_key_down(KeyCode::Space) && self.vy > -200.0 && self.jump_height_timer > 0.0 {
+            self.vy -= 500.0 * delta;
         }
 
         self.vx *= 0.75_f32;
