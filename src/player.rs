@@ -498,7 +498,10 @@ impl Player {
                             self.vy = 0.0;
                             if collision.dir == CollisionDirection::Down {
                                 on_ground = true;
+                            }else {
+                                self.jump_height_timer = 0.0;
                             }
+                            
                         }
                     }
 
@@ -539,6 +542,8 @@ impl Player {
         if is_key_down(KeyCode::Space) && self.vy > -200.0 && self.jump_height_timer > 0.0 {
             self.vy -= 500.0 * delta;
         }
+
+    
 
         self.vx *= 0.75_f32;
 
