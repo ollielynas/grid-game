@@ -489,7 +489,6 @@ impl Player {
                                 self.y -= 1.04;
                                 // self.vy += direction * 10.1;
                             }else {
-                                
                                 self.vx = 0.0;
                             }
                         },

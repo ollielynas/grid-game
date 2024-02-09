@@ -198,7 +198,7 @@ impl Map {
                             }
                         } else if *target_px != Pixel::Bedrock {
                             if fastrand::f32() < 0.8 {
-                                *target_px = if fastrand::f32() <= 0.8 {Pixel::Fire} else {Pixel::Air};
+                                *target_px = Pixel::Fire;
                             }
                         }
                     }
@@ -254,11 +254,12 @@ impl Map {
             }
 
             Pixel::Candle => {
-                if self.grid[(u_row - 1, u_col)].is_airy() && num > 80.0 {
+                if self.grid[(u_row - 1, u_col)]==Pixel::Air && num > 80.0 {
                     self.grid[(u_row - 1, u_col)] = Pixel::Fire;
                 }
+                self.ignite_px(u_col as i32, u_row as i32 - 1, false);
             }
-
+            
             Pixel::Explosive => {
                 if self.grid[(u_row + 1, u_col)] == Pixel::Explosive {
                     let side = fastrand::choice([0, 2]).unwrap_or(1);

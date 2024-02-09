@@ -128,13 +128,9 @@ async fn main() {
         light_texture.update(&map.light_mask);
 
         match get_char_pressed() {
-            Some('c') => {
-                map.make_square(map::Pixel::Air);
-            }
             Some('t') => {
                 map.update_state(&player);
             }
-            Some('g') => map.gen_terrain(),
             Some('i') => {
                 player.inventory.open = !player.inventory.open;
                 show_mouse(player.inventory.open);

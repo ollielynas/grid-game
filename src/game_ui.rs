@@ -82,22 +82,28 @@ pub async fn home() -> (Map, Player) {
         
         root_ui().label(None, "Game Title");
         root_ui().separator();
-        if let Some(ref map2) = map {
-            root_ui().label(None, &format!("Loaded Map: {}", map2.name))
-        }
-        if let Some(ref player2) = player {
-            root_ui().label(None, &format!("Loaded Player: {}", player2.name))
-        }
         root_ui().separator();
         
+        root_ui().label(None, " ");
+        if let Some(ref player2) = player {
+            root_ui().label(None, &format!("Loaded Player: {}", player2.name))
+        }else {
+            root_ui().label(None, "to start playing you need to create or load a player")
+        }
         if root_ui().button(None, "New Player") {
             player = Some(player_gen().await)
         }
         if root_ui().button(None, "Load Player") {
         }
         root_ui().separator();
-
         
+        
+        root_ui().label(None, " ");
+        if let Some(ref map2) = map {
+            root_ui().label(None, &format!("Loaded Map: {}", map2.name))
+        }else {
+            root_ui().label(None, "to start playing you need to create or load a map")
+        }
         if root_ui().button(None, "New Map") {
             map = Some(map_gen().await)
         }
@@ -106,6 +112,7 @@ pub async fn home() -> (Map, Player) {
         
         
         if map.is_some() && player.is_some() {
+            root_ui().label(None, " ");
             if root_ui().button(None, "Start Playing!") {
                 let mut final_player = player.unwrap();
                 let mut final_map = map.unwrap();
@@ -120,6 +127,8 @@ pub async fn home() -> (Map, Player) {
                 return (final_map, final_player);
             }
         }
+        root_ui().label(None, " ");
+        root_ui().label(None, "or create a debug world");
         if root_ui().button(None, "Debug") {
             player = Some(Player::new("debug".to_owned()));
             map = Some(Map::new_square(200, "debug".to_owned()));
@@ -134,10 +143,16 @@ pub async fn home() -> (Map, Player) {
                 final_player.y = respawn_point.y;
 
                 final_player.respawn_pos = respawn_point;
-
+                for ((row, col),_) in final_map.grid.indexed_iter() {
+                    final_map.update_texture_px.push((row, col))
+                }
+                final_map.update_image();
                 return (final_map, final_player);
         }
 
+
+        root_ui().label(None, " ");
+        root_ui().label(None, " tip: press i to open inventory");
 
 
         next_frame().await
@@ -148,14 +163,21 @@ pub async fn home() -> (Map, Player) {
 pub async fn player_gen() -> Player {
 
     let mut name = "Player Name Here".to_owned();
-    let player: Player;
+    let mut player: Player;
+
+    let mut creative_player = false;
+
     loop {
         clear_background(WHITE);
 
         root_ui().label(None, "New Player");
         root_ui().input_text(2, "Name", &mut name);
+        root_ui().checkbox(432, "creative Player", &mut creative_player);
         if root_ui().button(None, "Create") {
             player = Player::new(name);
+            if creative_player {
+                player.inventory = Inventory::creative();
+            }
             return player;
         }
 
@@ -170,6 +192,7 @@ pub async fn map_gen() -> Map {
     let mut seed = fastrand::i32(1000000000..2147483647).to_string();
     let mut name = "Map Name Here".to_owned();
     let mut map: Map;
+    let mut blank = false;
     loop {
         clear_background(WHITE);
 
@@ -177,10 +200,15 @@ pub async fn map_gen() -> Map {
         root_ui().slider(0, "World Size", 101.0..5000.0, &mut map_size);
         root_ui().input_text(2, "Name", &mut name);
         root_ui().input_text(3, "Seed", &mut seed);
+
+        root_ui().checkbox(432, "Blank World", &mut blank);
+
         if root_ui().button(None, "Create") {
             fastrand::seed(hash(seed.clone()));
             map = Map::new_square(map_size as usize, name.clone());
-            map.gen_terrain();
+            if !blank {
+                map.gen_terrain();
+            }
             return map;
         }
 
