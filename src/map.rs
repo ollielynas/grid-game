@@ -63,7 +63,7 @@ impl Pixel {
             Pixel::Lava => Color::from_rgba(247, 104, 6, 255),
             Pixel::Oil => Color::from_rgba(0, 0, 0, 255),
             Pixel::Candle => Color::from_rgba(239, 230, 211, 255),
-            Pixel::Glass => Color::from_rgba(100, 104, 230, 15),
+            Pixel::Glass => Color::from_rgba(100, 104, 230, 5),
             Pixel::Bedrock => Color::from_rgba(fastrand::u8(0..255), fastrand::u8(0..255), fastrand::u8(0..255), 255),
             Pixel::Explosive => Color::from_rgba(242, 33, 5, 255),
         }
@@ -72,6 +72,7 @@ impl Pixel {
     pub fn light_emission(&self) -> Color {
         match self {
             Pixel::Air => {Color::new(1.0, 1.0, 1.0, 0.05)},
+            Pixel::Glass => {Color::new(1.0, 1.0, 1.0, 0.05)},
             Pixel::Steam | Pixel::Smoke => {Color::new(1.0, 1.0, 1.0, 0.1)},
             Pixel::Water => {Color::new(1.0, 1.0, 1.0, 0.5)},
             Pixel::Lava => {Color::new(1.0, 0.0, 0.0, 0.0)},
@@ -133,6 +134,7 @@ impl Pixel {
         match self {
             Pixel::Wood => Some(Pixel::Fire),
             Pixel::Oil => Some(Pixel::Fire),
+            Pixel::Sand => Some(Pixel::Glass),
             Pixel::Water => Some(Pixel::Steam),
             _ => None
         }
@@ -143,6 +145,7 @@ impl Pixel {
             Pixel::Wood => 5.0,
             Pixel::Oil => 20.0,
             Pixel::Water => 50.0,
+            Pixel::Sand => 1.0,
             Pixel::Explosive => 5.0,
             _ => 0.0
         }

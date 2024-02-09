@@ -517,7 +517,7 @@ impl Player {
         let max_falling_speed = if in_water {
             10.0
         } else {
-            50.0
+            40.0
         };
 
         self.vy += if self.vy > max_falling_speed {
@@ -526,14 +526,14 @@ impl Player {
             max_falling_speed * delta * 12.0
         };
 
-        if on_ground && is_key_down(KeyCode::Space) && self.vy > -100.0 {
-            self.vy -= 100.0
+        if (on_ground | in_water) && is_key_down(KeyCode::Space) && self.vy > -100.0 {
+            self.vy -= if in_water {10.0} else {100.0}
         }
 
         self.vx *= 0.75_f32;
 
         if on_ground {
-            self.vx *= 0.7_f32;
+            self.vx *= 0.8_f32;
         }
 
         if in_water {
@@ -545,11 +545,11 @@ impl Player {
         }
 
         if is_key_down(KeyCode::A) && self.vx > -100.0 {
-            self.vx -= 10.0;
+            self.vx -= 8.0;
         }
 
         if is_key_down(KeyCode::D) && self.vx < 100.0 {
-            self.vx += 10.0;
+            self.vx += 8.0;
         }
     }
 }
