@@ -29,23 +29,30 @@ impl Map {
 
     /// TODO: https://www.codeproject.com/Articles/16405/Queue-Linear-Flood-Fill-A-Fast-Flood-Fill-Algorith
     pub fn move_fluids(&mut self) {
-        let mut fluid_surfaces: Vec<Vec<(usize, usize)>> = vec![];
-        let mut detected_fluids =
-            Grid::from_vec(vec![false; self.size.pow(2) as usize], self.size as usize);
         let mut detected_air =
             Grid::from_vec(vec![0; self.size.pow(2) as usize], self.size as usize);
 
-        // let gas = vec![0; self.size.pow(2) as usize].par_iter().map(|x| (x % self.size as usize, x/ self.size as usize)).filter(|a| self.grid[*a] == Pixel::Air);
-        // let fluid = vec![0; self.size.pow(2) as usize].par_iter().map(|x| (x % self.size as usize, x/ self.size as usize)).filter(|a| self.grid[*a].fluid());
+        let mut check_water: Vec<(usize, usize)> = vec![];
 
-        let mut air_id;
+        let mut air_id: i16;
         let mut check: Vec<(usize, usize)> = vec![];
-        for row in 0..(self.size as usize - 2) {
-            for col in 0..(self.size as usize - 2) {
+        for row in 2..(self.size as usize - 2) {
+            for col in 2..(self.size as usize - 2) {
+                let current_row_col = self.grid[(row, col)];
                 air_id = 0;
-                if detected_air[(row, col)] == 0 && self.grid[(row, col)] == Pixel::Air {
+                if detected_air[(row, col)] == 0 && current_row_col == Pixel::Air {
+                    let mut alone = true;
+                    for f in  [
+                        (row + 1, col),
+                        (row - 1, col),
+                        (row, col + 1),
+                    ]
+                    {
+                    alone = alone && !(self.grid[f] == Pixel::Air);
+                    };
+                    if alone {continue;}
                     check = vec![(row, col)];
-                    air_id = fastrand::i32(0..i32::MAX)
+                    air_id += 1;
                 }
                 while !check.is_empty() {
                     let a = check.pop().unwrap_or((0, 0));
@@ -58,26 +65,15 @@ impl Map {
                         continue;
                     }
 
-                    if [
-                        (a.0 + 1, a.1),
-                        (a.0 - 1, a.1),
-                        (a.0, a.1 + 1),
-                        (a.0, a.1 - 1),
-                        (a.0 + 1, a.1 + 1),
-                        (a.0 + 1, a.1 - 1),
-                        (a.0 - 1, a.1 + 1),
-                        (a.0 - 1, a.1 - 1),
-                    ]
-                    .iter()
-                    .all(|f| self.grid[*f] == self.grid[a])
-                    {
-                        continue;
-                    };
-
                     detected_air[a] = air_id;
 
                     let row = a.0;
                     let col = a.1;
+
+                    if row < self.size as usize - 3 && self.grid[(row +1, col)].fluid() {
+                        check_water.push((row +1, col));
+                    }
+
                     for i in [
                         (row + 1, col),
                         (row - 1, col),
@@ -87,7 +83,7 @@ impl Map {
                         if detected_air[i] != 0 {
                             continue;
                         }
-                        if self.grid[i] == self.grid[(row, col)] {
+                        if self.grid[i] == current_row_col {
                             check.push(i)
                         }
                     }
@@ -95,24 +91,25 @@ impl Map {
             }
         }
 
-        for row in 2..(self.size as usize - 2) {
-            for col in 2..(self.size as usize - 2) {
-                if [
-                    (row + 1, col),
-                    (row - 1, col),
-                    (row, col + 1),
-                    (row, col - 1),
-                ]
-                .iter()
-                .all(|f| !self.grid[*f].fluid())
-                {
-                    continue;
-                };
+        let mut fluid_surfaces: Vec<Vec<(usize, usize)>> = vec![];
+        let mut detected_fluids =
+            Grid::from_vec(vec![false; self.size.pow(2) as usize], self.size as usize);
+                for (row, col) in check_water {
                 if self.grid[(row, col)].fluid() && !detected_fluids[(row, col)] {
-                    fluid_surfaces.insert(0, vec![]);
-                    check = vec![(row, col)];
-                }
-                while !check.is_empty() {
+                    let mut alone = true;
+                    for f in  [
+                        (row + 1, col),
+                        (row, col + 1),
+                        ]
+                        {
+                            alone = alone && !self.grid[f].fluid()
+                        };
+                        if alone {continue;}
+                        fluid_surfaces.insert(0, vec![]);
+                        check = vec![(row, col)];
+                    }
+                    let current_row_col = self.grid[(row, col)];
+                    while !check.is_empty() {
                     let a = check.pop().unwrap_or((0, 0));
                     if a.1 < 2
                         || a.1 > self.size as usize - 2
@@ -121,21 +118,7 @@ impl Map {
                     {
                         continue;
                     }
-                    if ![
-                        (a.0 + 1, a.1),
-                        (a.0 - 1, a.1),
-                        (a.0, a.1 + 1),
-                        (a.0, a.1 - 1),
-                        (a.0 + 1, a.1 + 1),
-                        (a.0 + 1, a.1 - 1),
-                        (a.0 - 1, a.1 + 1),
-                        (a.0 - 1, a.1 - 1),
-                    ]
-                    .iter()
-                    .any(|f| self.grid[*f] != self.grid[a])
-                    {
-                        continue;
-                    };
+
 
                     detected_fluids[a] = true;
                     if self.grid[(a.0 - 1, a.1)] == Pixel::Air {
@@ -149,19 +132,15 @@ impl Map {
                         (row, col + 1),
                         (row, col - 1),
                     ] {
-                        if detected_fluids[i] {
-                            continue;
-                        }
-
-                        if self.grid[i] == self.grid[(row, col)] {
+                        if !detected_fluids[i] && self.grid[i] == current_row_col {
                             check.push(i)
                         }
                     }
-                }
+                // }
             }
         }
 
-        fluid_surfaces.retain(|f| f.len() > 2);
+        fluid_surfaces.retain(|f| f.len() > 3);
 
         if fluid_surfaces.is_empty() {
             return;
@@ -468,7 +447,7 @@ impl Map {
             Pixel::Gold | Pixel::Stone | Pixel::Air | Pixel::Wood => {}
         }
 
-        // if  num > 90.0 || (player.get_view_port().contains(Vec2::new(col as f32, row as f32)) && num > 90.0) {
+        if  num > 90.0 || (player.view_port_cache.contains(Vec2::new(col as f32, row as f32))) {
         let light_mask_surroundings = [
             self.light_mask.get_pixel(col as u32 - 1, row as u32 - 1),
             self.light_mask.get_pixel(col as u32 - 1, row as u32),
@@ -500,6 +479,6 @@ impl Map {
             },
         );
 
-        // }
+        }
     }
 }

@@ -2,25 +2,25 @@ use grid::Grid;
 
 use crate::map::Pixel;
 
-pub fn craft(grid: Grid::<Pixel>) -> (bool, Grid::<Pixel>) {
+pub fn craft(mut grid: Grid::<Pixel>) -> (bool, Grid::<Pixel>) {
 
+    let mut changed = false;
 
-    let mut g_vec = grid.clone().into_vec();
-    let length = g_vec.len();
-    g_vec.retain(|x| *x!=Pixel::Air);
-    let mut changed = true;
-    let mut new_vec = match g_vec.as_slice() {
-        [Pixel::Stone, Pixel::Lava] | [Pixel::Lava, Pixel::Stone] => {
-            vec![Pixel::Lava, Pixel::Lava]
+    for row in 0..grid.rows() {
+        for col in 0..grid.cols() {
+            match grid[(row,col)] {
+                Pixel::Lava if row > 0 && grid[(row-1,col)] == Pixel::Stone => {
+                    grid[(row-1,col)] = Pixel::Lava;
+                    changed = true;
+                }
+                Pixel::LiveWood => {
+                    grid[(row,col)] = Pixel::Wood;
+                    changed = true;
+                }
+                _ => {}
+            }
         }
-        a => {
-            changed = false;
-            a.to_vec()
-        }
-    };
-    let len2 = new_vec.len();
-
-    new_vec.append(&mut vec![Pixel::Air;length-len2]);
+    }
     
-    return (changed, if changed {Grid::from_vec(new_vec, grid.cols())} else {grid});
+    return (changed , grid);
 }

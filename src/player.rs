@@ -65,6 +65,7 @@ pub struct Player {
     pub respawn_pos: Vec2,
     jump_height_timer: f32,
     craft_timer: f32,
+    pub view_port_cache: Rect,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -198,33 +199,33 @@ pub struct HitLineSet {
 
 impl HitLineSet {
     pub fn render(&self) {
-        // for line in &self.horizontal {
-        //     let p1 = Vec2::new(line.x, line.y);
-        //     let p2 = Vec2::new(line.x + line.length, line.y);
+        for line in &self.horizontal {
+            let p1 = Vec2::new(line.x, line.y);
+            let p2 = Vec2::new(line.x + line.length, line.y);
 
     
-        //     draw_line(p1.x - 0.1, p1.y, p2.x + 0.1, p2.y, 0.2, BLACK);
-        // }
-
-        let points = self.vertical.par_iter().map(|line| {
-            (Vec2::new(line.x, line.y - 0.1), 
-            Vec2::new(line.x, line.y + line.height + 0.1))
-        }).chain(self.horizontal.par_iter().map(|line| {
-            (Vec2::new(line.x - 0.1, line.y), 
-            Vec2::new(line.x + 0.1 + line.length, line.y))
-        })).collect::<Vec<(Vec2, Vec2)>>();
-
-        for (p1,p2) in points {
-            draw_line(p1.x, p1.y, p2.x, p2.y, 0.2, BLACK);
+            draw_line(p1.x - 0.1, p1.y, p2.x + 0.1, p2.y, 0.2, BLACK);
         }
 
-        // for line in &self.vertical {
-        //     let p1 = Vec2::new(line.x, line.y);
-        //     let p2 = Vec2::new(line.x, line.y + line.height);
+        // let points = self.vertical.par_iter().map(|line| {
+        //     (Vec2::new(line.x, line.y - 0.1), 
+        //     Vec2::new(line.x, line.y + line.height + 0.1))
+        // }).chain(self.horizontal.par_iter().map(|line| {
+        //     (Vec2::new(line.x - 0.1, line.y), 
+        //     Vec2::new(line.x + 0.1 + line.length, line.y))
+        // })).collect::<Vec<(Vec2, Vec2)>>();
+
+        // for (p1,p2) in points {
+        //     draw_line(p1.x, p1.y, p2.x, p2.y, 0.2, BLACK);
+        // }
+
+        for line in &self.vertical {
+            let p1 = Vec2::new(line.x, line.y);
+            let p2 = Vec2::new(line.x, line.y + line.height);
 
     
-        //     draw_line(p1.x, p1.y - 0.1, p2.x, p2.y + 0.1, 0.2, BLACK);
-        // }
+            draw_line(p1.x, p1.y - 0.1, p2.x, p2.y + 0.1, 0.2, BLACK);
+        }
     }
 
     pub fn get_collision_with(&self, other: &HitLineSet, v: Vec2) -> Option<Collision> {
@@ -269,6 +270,7 @@ impl Default for Player {
             respawn_pos: Vec2 { x: 50.0, y: 50.0 },
             jump_height_timer: 0.0,
             craft_timer: 0.0,
+            view_port_cache: Rect::default(),
         }
     }
 }
@@ -662,5 +664,7 @@ impl Player {
         // if is_key_down(KeyCode::D) && self.vx < 500.0 && on_ground {
         //     self.vx +=8.0;
         // }
+
+        self.view_port_cache = self.get_view_port();
     }
 }

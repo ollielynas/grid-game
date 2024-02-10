@@ -219,7 +219,7 @@ async fn main() {
         overlay_material.set_uniform("ScreenSize", (screen_width(), screen_height()));
         overlay_material.set_uniform("Damage", average_damage.iter().sum::<f32>()/average_damage.len() as f32);
 
-        let v_port = player.get_view_port();
+        let v_port = player.view_port_cache;
 
         
         
@@ -229,7 +229,7 @@ async fn main() {
         gl_use_default_material();
 
         
-        let hit = player.make_map_box(&map, player.get_view_port(), false);
+        let hit = player.make_map_box(&map, player.view_port_cache, false);
         hit.render();
 
         if player.render_ui() {
@@ -247,7 +247,6 @@ async fn main() {
 
         let wand_rect = player.craft_rect(map.size.clone() as usize).unwrap_or_default();
             let craft_result = craft(map.get_region(wand_rect));
-                
 
         if let Some(wand_rect) = player.craft_rect(map.size as usize) {
             if distance >= 25.0 {
