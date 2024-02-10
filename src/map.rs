@@ -82,7 +82,7 @@ impl Pixel {
     }
 
     pub fn fluid(&self) -> bool {
-        matches!(self , Pixel::Lava | Pixel::Water)
+        matches!(self , Pixel::Lava | Pixel::Water | Pixel::Oil)
     }
 
     pub fn cycle(&self) -> Pixel {
@@ -145,8 +145,8 @@ impl Pixel {
             Pixel::Wood => 5.0,
             Pixel::Oil => 20.0,
             Pixel::Water => 50.0,
-            Pixel::Sand => 1.0,
-            Pixel::Explosive => 5.0,
+            Pixel::Sand => 0.01,
+            Pixel::Explosive => 100.0,
             _ => 0.0
         }
     }
@@ -332,7 +332,8 @@ impl Map {
 
     /// makes a new square map of the given `usize`
     pub fn new_square(size: usize, name: String) -> Map {
-        let grid = Grid::from_vec((0..size.pow(2)).map(|_| Pixel::Air).collect(), size);
+        let grid = Grid::from_vec(
+            vec![Pixel::Air;size.pow(2)], size);
 
         return Map {
             grid,
@@ -388,13 +389,16 @@ impl Map {
     /// updates the image based on the pixels listed in the 'update_texture_px' list
     pub fn update_image(&mut self) {
 
+
         for (row, col) in &self.update_texture_px {
             self.image.set_pixel(
                 *col as u32,
                 *row as u32,
-                self.grid.get(*row, *col).unwrap_or(&Pixel::Air).color(),
+                self.grid[(*row, *col)].color(),
             )
         }
+
+
 
 
     }

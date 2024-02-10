@@ -1,9 +1,10 @@
 use std::default;
 use savefile_derive::Savefile;
 use strum::IntoEnumIterator;
+use rayon::prelude::*;
 
 use macroquad::{
-    camera::Camera2D, color::{BLACK, RED}, input::{get_char_pressed, is_key_down, mouse_position}, math::{Rect, Vec2}, miniquad::KeyCode, shapes::draw_line, time::{get_fps, get_frame_time}, window::{screen_height, screen_width}
+    camera::Camera2D, color::{BLACK}, input::{is_key_down, mouse_position}, math::{Rect, Vec2}, miniquad::KeyCode, shapes::draw_line, time::{get_fps, get_frame_time}, window::{screen_height, screen_width}
 };
 
 use crate::{entity::Entity, map::Pixel};
@@ -40,7 +41,7 @@ impl Default for Inventory {
 impl Inventory {
     pub fn creative() -> Self {
         Inventory {
-            items: Pixel::iter().map(|x| Item::PlacePixel { pixel: x, count: 1000 }).collect(),
+            items: Pixel::iter().map(|x| Item::PlacePixel { pixel: x, count: 9999999 }).collect(),
             open: false,
             animation: 1.0,
         }
@@ -192,23 +193,33 @@ pub struct HitLineSet {
 
 impl HitLineSet {
     pub fn render(&self) {
-        for line in &self.horizontal {
-            let p1 = Vec2::new(line.x, line.y);
-            let p2 = Vec2::new(line.x + line.length, line.y);
+        // for line in &self.horizontal {
+        //     let p1 = Vec2::new(line.x, line.y);
+        //     let p2 = Vec2::new(line.x + line.length, line.y);
 
-            //println!("{:?} {:?}", p1, p2);
     
-            draw_line(p1.x - 0.1, p1.y, p2.x + 0.1, p2.y, 0.2, BLACK);
+        //     draw_line(p1.x - 0.1, p1.y, p2.x + 0.1, p2.y, 0.2, BLACK);
+        // }
+
+        let points = self.vertical.par_iter().map(|line| {
+            (Vec2::new(line.x, line.y - 0.1), 
+            Vec2::new(line.x, line.y + line.height + 0.1))
+        }).chain(self.horizontal.par_iter().map(|line| {
+            (Vec2::new(line.x - 0.1, line.y), 
+            Vec2::new(line.x + 0.1 + line.length, line.y))
+        })).collect::<Vec<(Vec2, Vec2)>>();
+
+        for (p1,p2) in points {
+            draw_line(p1.x, p1.y, p2.x, p2.y, 0.2, BLACK);
         }
 
-        for line in &self.vertical {
-            let p1 = Vec2::new(line.x, line.y);
-            let p2 = Vec2::new(line.x, line.y + line.height);
+        // for line in &self.vertical {
+        //     let p1 = Vec2::new(line.x, line.y);
+        //     let p2 = Vec2::new(line.x, line.y + line.height);
 
-            //println!("{:?} {:?}", p1, p2);
     
-            draw_line(p1.x, p1.y - 0.1, p2.x, p2.y + 0.1, 0.2, BLACK);
-        }
+        //     draw_line(p1.x, p1.y - 0.1, p2.x, p2.y + 0.1, 0.2, BLACK);
+        // }
     }
 
     pub fn get_collision_with(&self, other: &HitLineSet, v: Vec2) -> Option<Collision> {
@@ -426,18 +437,17 @@ impl Player {
     }
 
     pub fn get_player_box(&self, offset_x: f32, offset_y: f32) -> HitLineSet {
-        let mut res = HitLineSet {
-            vertical: vec![],
-            horizontal: vec![]
-        };
+        HitLineSet {
+            vertical: vec![
+                VerticalLine::new(self.x+offset_x, self.y + offset_y, 2.95, true),
+                VerticalLine::new(self.x+offset_x + 1.95, self.y + offset_y, 2.95, false)
+                ],
+                horizontal: vec![
+                HorizontalLine::new(self.x+offset_x, self.y + offset_y, 1.95, true),
+                HorizontalLine::new(self.x+offset_x, self.y + offset_y + 2.95, 1.95, false)
 
-        res.horizontal.push(HorizontalLine::new(self.x+offset_x, self.y + offset_y, 1.95, true));
-        res.horizontal.push(HorizontalLine::new(self.x+offset_x, self.y + offset_y + 2.95, 1.95, false));
-
-        res.vertical.push(VerticalLine::new(self.x+offset_x, self.y + offset_y, 2.95, true));
-        res.vertical.push(VerticalLine::new(self.x+offset_x + 1.95, self.y + offset_y, 2.95, false));
-
-        res
+            ]
+        }
     }
 
     pub fn rect(&self) -> Rect {Rect::new(self.x, self.y, 1.95, 2.95)}
@@ -448,7 +458,7 @@ impl Player {
 
         let mut damage: f32 = 0.0;
 
-        for ((row, col), pixel) in map.get_region(self.rect()).indexed_iter() {
+        for  pixel in map.get_region(self.rect()).iter() {
             damage = damage.max(pixel.player_damage());
         }
 
@@ -458,14 +468,14 @@ impl Player {
             self.respawn()
         }
 
-        let terain_hit = self.make_map_box(map, Rect::new(self.x - 20.0, self.y - 20.0, 40.0, 40.0), true);
+        let terrain_hit = self.make_map_box(map, Rect::new(self.x - 20.0, self.y - 20.0, 40.0, 40.0), true);
 
         let mut on_ground = false;
 
         while remaining > 0.0 {
             let dp = Vec2::new(self.vx, self.vy) * remaining;
 
-            let collision = self.get_player_box(0.0,0.0).get_collision_with(&terain_hit, dp);
+            let collision = self.get_player_box(0.0,0.0).get_collision_with(&terrain_hit, dp);
 
             match collision {
                 None => {
@@ -476,7 +486,6 @@ impl Player {
                 },
 
                 Some(collision) => {
-                    //println!("Collision! {:?}", collision);
 
                     self.x += self.vx * collision.time * delta;
                     self.y += self.vy * collision.time * delta;
@@ -484,8 +493,8 @@ impl Player {
                     match collision.dir {
                         CollisionDirection::Left | CollisionDirection::Right => {
                             let direction = self.vx.signum() * 0.04;
-                            if  self.get_player_box(0.0,0.0).get_collision_with(&terain_hit, Vec2::new(0.0 ,-1.04)).is_none()
-                            && self.get_player_box(0.0,-1.04).get_collision_with(&terain_hit, Vec2::new(direction ,0.0)).is_none()  {
+                            if  self.get_player_box(0.0,0.0).get_collision_with(&terrain_hit, Vec2::new(0.0 ,-1.04)).is_none()
+                            && self.get_player_box(0.0,-1.04).get_collision_with(&terrain_hit, Vec2::new(direction ,0.0)).is_none()  {
                                 self.y -= 1.04;
                                 // self.vy += direction * 10.1;
                             }else {
@@ -513,7 +522,7 @@ impl Player {
         let mut in_water = false;
 
         for pixel in region.iter() {
-            if *pixel == Pixel::Water {
+            if pixel.fluid() {
                 in_water = true;
             }
         }
@@ -552,11 +561,10 @@ impl Player {
 
         if in_water {
             self.vx *= 0.7_f32;
-        }
-
-        if in_water {
             self.vy *= 0.7f32;
         }
+
+
 
         if is_key_down(KeyCode::A) && self.vx > -500.0 {
             self.vx -= 8.0;

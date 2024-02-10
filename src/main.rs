@@ -83,7 +83,7 @@ async fn main() {
             vertex: include_str!("./shader/vertex.glsl"), 
             fragment: include_str!("./shader/damage_frag.glsl")
         },
-        MaterialParams { 
+        MaterialParams {
             pipeline_params: PipelineParams {
                 color_blend: Some(BlendState::new(
                     Equation::Add,
@@ -234,7 +234,7 @@ async fn main() {
                 Item::Pickaxe if hover != Some(Pixel::Air) => {
                     draw_rectangle_lines(pt.x.floor(), pt.y.floor(), 1.0, 1.0, 0.5, RED);
                 }
-                Item::PlacePixel { pixel, count } => {
+                Item::PlacePixel { pixel: _, count } => {
                     draw_rectangle_lines(pt.x.floor(), pt.y.floor(), 1.0, 1.0, 0.5, LIGHTGRAY);
                     draw_text_ex(
                         &format!("{count}"),

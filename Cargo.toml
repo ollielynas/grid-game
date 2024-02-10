@@ -19,6 +19,7 @@ savefile-derive = "0.16.5"
 lazy_static = "1.4.0"
 strum = "0.26.1"
 strum_macros = "0.26.1"
+rayon = "1.8.1"
 
 
 [profile.release]

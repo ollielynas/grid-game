@@ -77,6 +77,8 @@ pub async fn home() -> (Map, Player) {
 
     let mut map: Option<Map> = None;
     let mut player: Option<Player> =  None;
+    let mut opt_test = false;
+
     loop {
         clear_background(WHITE);
         
@@ -129,9 +131,11 @@ pub async fn home() -> (Map, Player) {
         }
         root_ui().label(None, " ");
         root_ui().label(None, "or create a debug world");
+        root_ui().checkbox(6234, "opt test", &mut opt_test);
+
         if root_ui().button(None, "Debug") {
             player = Some(Player::new("debug".to_owned()));
-            map = Some(Map::new_square(200, "debug".to_owned()));
+            map = Some(Map::new_square(if opt_test {800} else {200}, "debug".to_owned()));
             let mut final_player = player.unwrap();
                 let mut final_map = map.unwrap();
                 final_map.gen_terrain();
@@ -149,6 +153,7 @@ pub async fn home() -> (Map, Player) {
                 final_map.update_image();
                 return (final_map, final_player);
         }
+
 
 
         root_ui().label(None, " ");
