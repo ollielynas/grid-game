@@ -27,6 +27,9 @@ pub enum Pixel {
     Glass,
     Lava,
     Explosive,
+    LiveWood,
+    Seed,
+    Leaf,
 }
 
 impl Default for Pixel {
@@ -36,16 +39,7 @@ impl Default for Pixel {
 }
 
 impl Pixel {
-    pub fn all() -> impl Iterator<Item = Self> {
-        static ALL: [Pixel; 16] = [
-            Pixel::Air, Pixel::Sand, Pixel::Dirt, Pixel::Stone,
-            Pixel::Water, Pixel::Fire, Pixel::Grass, Pixel::Wood,
-            Pixel::Bedrock, Pixel::Smoke, Pixel::Steam, Pixel::Gold,
-            Pixel::Oil, Pixel::Glass, Pixel::Lava, Pixel::Explosive
-        ];
-        
-        ALL.into_iter()
-    }
+
 
     fn color(&self) -> Color {
         match self {
@@ -53,6 +47,9 @@ impl Pixel {
             Pixel::Sand => Color::from_rgba(207, 215, 157, 255),
             Pixel::Fire => Color::from_rgba(193, 84, 45, 255),
             Pixel::Wood => Color::from_rgba(139, 107, 59, 255),
+            Pixel::LiveWood => Color::from_rgba(139, 107, 59, 255),
+            Pixel::Seed => Color::from_rgba(113,169,44, 155),
+            Pixel::Leaf => Color::from_rgba(113,149,44, 155),
             Pixel::Smoke => Color::from_rgba(190,190,190, 255),
             Pixel::Steam => Color::from_rgba(199,213,224, 255),
             Pixel::Water => Color::from_rgba(35,69,190, 150),
@@ -77,6 +74,7 @@ impl Pixel {
             Pixel::Water => {Color::new(1.0, 1.0, 1.0, 0.5)},
             Pixel::Lava => {Color::new(1.0, 0.0, 0.0, 0.0)},
             Pixel::Fire => {Color::new(1.0, 0.0, 0.0, 0.0)},
+            Pixel::Leaf => {Color::new(0.0, 1.0, 0.0, 0.5)},
             _ => {Color::new(0.0, 0.0, 0.0, 1.0)}
         }
     }
@@ -85,28 +83,7 @@ impl Pixel {
         matches!(self , Pixel::Lava | Pixel::Water | Pixel::Oil)
     }
 
-    pub fn cycle(&self) -> Pixel {
-        return match self {
-            Pixel::Air => Pixel::Sand,
-            Pixel::Sand => Pixel::Fire,
-            Pixel::Fire =>Pixel::Wood,
-            Pixel::Wood => Pixel::Smoke,
-            Pixel::Smoke => Pixel::Water,
-            Pixel::Water => Pixel::Bedrock,
-            Pixel::Bedrock => Pixel::Stone,
-            Pixel::Stone => Pixel::Dirt,
-            Pixel::Dirt => Pixel::Grass,
-            Pixel::Grass => Pixel::Gold,
-            Pixel::Gold => Pixel::Lava,
-            Pixel::Lava => Pixel::Steam,
-            Pixel::Steam => Pixel::Glass,
-            Pixel::Glass => Pixel::Oil,
-            Pixel::Oil => Pixel::Explosive,
-            Pixel::Explosive => Pixel::Candle,
-            Pixel::Candle => Pixel::Air
-        }
-
-    }
+    
 
     pub fn is_airy(&self) -> bool {
         return matches!(self, Pixel::Air | Pixel::Fire | Pixel::Smoke | Pixel::Steam);
@@ -115,7 +92,7 @@ impl Pixel {
     pub fn fluid_density(&self) -> Option<i32> {
         match self {
             Pixel::Air => Some(3),
-            Pixel::Sand|Pixel::Dirt|Pixel::Lava|Pixel::Grass|Pixel::Explosive => Some(30),
+            Pixel::Sand|Pixel::Dirt|Pixel::Lava|Pixel::Grass|Pixel::Explosive| Pixel::Seed => Some(30),
             Pixel::Smoke => Some(1),
             Pixel::Steam => Some(1),
             Pixel::Water => Some(15),
@@ -123,6 +100,8 @@ impl Pixel {
             Pixel::Fire => Some(2),
             Pixel::Bedrock
             |Pixel::Wood 
+            |Pixel::Leaf 
+            |Pixel::LiveWood 
             |Pixel::Stone
             |Pixel::Candle
             |Pixel::Glass
@@ -133,9 +112,11 @@ impl Pixel {
     pub fn heat_product(&self) -> Option<Self> {
         match self {
             Pixel::Wood => Some(Pixel::Fire),
+            Pixel::LiveWood => Some(Pixel::Fire),
             Pixel::Oil => Some(Pixel::Fire),
             Pixel::Sand => Some(Pixel::Glass),
             Pixel::Water => Some(Pixel::Steam),
+            Pixel::Leaf => if fastrand::f32() > 0.95 {Some(Pixel::Seed)} else {Some(Pixel::Fire)},
             _ => None
         }
     }
@@ -143,6 +124,8 @@ impl Pixel {
     pub fn ignition_probability(&self) -> f32 {
         match self {
             Pixel::Wood => 5.0,
+            Pixel::LiveWood => 40.0,
+            Pixel::Leaf => 40.0,
             Pixel::Oil => 20.0,
             Pixel::Water => 50.0,
             Pixel::Sand => 0.01,
@@ -170,7 +153,7 @@ impl Pixel {
     pub fn can_hit(&self) -> bool {
         match self {
             Pixel::Candle | Pixel::Glass |Pixel::Sand | Pixel::Dirt | Pixel::Bedrock | Pixel::Wood | Pixel::Stone | Pixel::Gold | Pixel::Grass | Pixel::Explosive => true,
-            Pixel::Oil |Pixel::Air | Pixel::Lava | Pixel::Steam | Pixel::Water | Pixel::Fire | Pixel::Smoke => false
+            Pixel::LiveWood | Pixel::Leaf | Pixel::Seed | Pixel::Oil |Pixel::Air | Pixel::Lava | Pixel::Steam | Pixel::Water | Pixel::Fire | Pixel::Smoke => false
         }
     }
 
@@ -311,21 +294,12 @@ impl Map {
                         self.spawn_entity(EntityType::Tree, row as f32, col as f32-1.0);
                     }
                 },
-                |Pixel::Air
-                |Pixel::Sand
-                |Pixel::Candle
-                |Pixel::Dirt
-                |Pixel::Stone
-                |Pixel::Glass
-                |Pixel::Oil
-                |Pixel::Fire
-                |Pixel::Gold
-                |Pixel::Steam
-                |Pixel::Wood 
-                |Pixel::Bedrock
-                |Pixel::Lava
-                |Pixel::Smoke
-                |Pixel::Explosive => {}, 
+                _ => {}, 
+            }
+        }
+        for i in 2..(self.size -2) {
+            if fastrand::f32() > 0.95 {
+            self.grid[(4, i as usize)] = Pixel::Seed;
             }
         }
     } 

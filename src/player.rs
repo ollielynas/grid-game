@@ -299,7 +299,10 @@ impl Player {
                     self.inventory.items.insert(0,Item::SpawnEntity { entity, count})
                 }
             },
-            Item::PlacePixel { pixel, count } => {
+            Item::PlacePixel { mut pixel, count } => {
+                if pixel == Pixel::LiveWood {
+                    pixel = Pixel::Wood
+                }
                 let mut added_count = false;
                 for i in self.inventory.items.iter_mut() {
                     if let Item::PlacePixel { pixel: pixel2, count: count2 } = i {

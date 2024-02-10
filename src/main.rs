@@ -41,8 +41,8 @@ async fn main() {
 
 
 
-    let texture: Texture2D = Texture2D::from_image(&map.image);
-    let light_texture: Texture2D = Texture2D::from_image(&map.light_mask);
+    let mut texture: Texture2D = Texture2D::from_image(&map.image);
+    let mut light_texture: Texture2D = Texture2D::from_image(&map.light_mask);
 
     texture.set_filter(FilterMode::Nearest);
     //light_texture.set_filter(FilterMode::Nearest);
@@ -58,7 +58,6 @@ async fn main() {
     // let texture_heatmap: Texture2D = Texture2D::from_image(&map.heatmap);
 
     let mut hover: Option<Pixel>;
-
 
     let light_material = load_material(
         ShaderSource::Glsl { 
@@ -118,7 +117,6 @@ async fn main() {
         // clear_background(Color { r: 0.8, g: 0.8, b: 0.8, a: 1.0 });
         clear_background(WHITE);
 
-        
 
         if !paused {
             map.update_state(&player);
@@ -128,13 +126,11 @@ async fn main() {
         light_texture.update(&map.light_mask);
 
         match get_char_pressed() {
-            Some('t') => {
-                map.update_state(&player);
-            }
             Some('i') => {
                 player.inventory.open = !player.inventory.open;
                 show_mouse(player.inventory.open);
             }
+            
             _ => {}
         }
         let mouse = mouse_position();
@@ -214,7 +210,14 @@ async fn main() {
         let hit = player.make_map_box(&map, player.get_view_port(), false);
         hit.render();
 
-        player.render();
+        if player.render_ui() {
+            (map, player) = home().await;
+            
+        texture = Texture2D::from_image(&map.image);
+        light_texture = Texture2D::from_image(&map.light_mask);
+        texture.set_filter(FilterMode::Nearest);
+            continue;
+        };
 
         player.get_player_box(0.0, 0.0).render();
 

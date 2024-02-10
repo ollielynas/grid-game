@@ -6,16 +6,14 @@ use crate::{map::Map, player::{Inventory, Player}};
 use macroquad::prelude::*;
 
 impl Player {
-    pub fn render(&mut self) {
+    pub fn render_ui(&mut self) -> bool {
         let delta = get_frame_time();
         // let hand_item = self.item_in_hand;
         let mut equip_item: Option<crate::player::Item> = None;
         self.inventory.animation -= if self.inventory.open {1.0} else {-1.0} * 4.0 * delta;
         self.inventory.animation = self.inventory.animation.clamp(0.0, 1.0);
 
-        // root_ui().canvas().line(start, end, color)
-
-
+        
         let vb = self.get_view_port();
         
         draw_rectangle(1.0+vb.x, vb.y+(self.inventory.animation) * 10.0 - 9.0 , 20.0* 0.8, 2.0, GRAY);
@@ -23,13 +21,18 @@ impl Player {
         
         draw_rectangle(1.0+vb.x, vb.y+(self.inventory.animation) * 10.0 - 9.0 , self.health* 0.8, 2.0, RED);
         draw_rectangle_lines(vb.x+1.0, vb.y+(self.inventory.animation) * 10.0 -9.0 , self.health* 0.8, 2.0, 0.4,BLACK);
-        
+
+        let offset = (1.0-self.inventory.animation) * 100.0;
+
         if self.inventory.animation != 1.0 {
-        
+            if root_ui().button(None, "main menu") {
+                return true
+            }
+            
                 widgets::Window::new(128, vec2(100., 100.0 ), vec2(screen_width() - 200.0, screen_height() - 200.0))
-                
-                    .label("inventory")
-                    .titlebar(true)
+                    // .movable(true)
+                    // .close_button(false)
+                    // .titlebar(true)
                     .ui(&mut *root_ui(), |ui| {
                         Group::new(9999 as u64+99, Vec2::new(screen_width() - 200.0, 100.)).ui(ui, |ui| {
                             if ui.button(None, "Holding: ") {
@@ -67,6 +70,8 @@ impl Player {
             self.item_in_hand = item;
             self.inventory.items.retain(|x| x != &self.item_in_hand);
         }
+
+        return false
 
     
 }

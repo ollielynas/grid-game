@@ -1,34 +1,39 @@
-use crate::{map::{Map, Pixel}, player::Player};
+use crate::{
+    map::{Map, Pixel},
+    player::Player,
+};
 use grid::Grid;
-use macroquad::{color::{Color, GREEN}, math::Vec2, time::get_fps};
+use macroquad::{
+    color::{Color, GREEN},
+    math::Vec2,
+    time::get_fps,
+};
 use rayon::prelude::*;
 
 impl Map {
     pub fn update_state(&mut self, player: &Player) {
-
-
-
-        for point in vec![0; (0.5 * (self.size as f32).powi(2)) as usize].par_iter().map(|_| (
-            fastrand::i32(2..self.size as i32 - 2),
-            fastrand::i32(2..self.size as i32 - 2),
-        )).collect::<Vec<(i32,i32)>>() {
+        for point in vec![0; (0.5 * (self.size as f32).powi(2)) as usize]
+            .par_iter()
+            .map(|_| {
+                (
+                    fastrand::i32(2..self.size as i32 - 2),
+                    fastrand::i32(2..self.size as i32 - 2),
+                )
+            })
+            .collect::<Vec<(i32, i32)>>()
+        {
             self.update_px(point.0, point.1, player);
         }
         self.move_fluids()
     }
-    
-/// TODO: https://www.codeproject.com/Articles/16405/Queue-Linear-Flood-Fill-A-Fast-Flood-Fill-Algorith
-    pub fn move_fluids(&mut self) {
 
+    /// TODO: https://www.codeproject.com/Articles/16405/Queue-Linear-Flood-Fill-A-Fast-Flood-Fill-Algorith
+    pub fn move_fluids(&mut self) {
         let mut fluid_surfaces: Vec<Vec<(usize, usize)>> = vec![];
-        let mut detected_fluids = Grid::from_vec(
-            vec![false; self.size.pow(2) as usize],
-            self.size as usize,
-        );
-        let mut detected_air = Grid::from_vec(
-            vec![0; self.size.pow(2) as usize],
-            self.size as usize,
-        );
+        let mut detected_fluids =
+            Grid::from_vec(vec![false; self.size.pow(2) as usize], self.size as usize);
+        let mut detected_air =
+            Grid::from_vec(vec![0; self.size.pow(2) as usize], self.size as usize);
 
         // let gas = vec![0; self.size.pow(2) as usize].par_iter().map(|x| (x % self.size as usize, x/ self.size as usize)).filter(|a| self.grid[*a] == Pixel::Air);
         // let fluid = vec![0; self.size.pow(2) as usize].par_iter().map(|x| (x % self.size as usize, x/ self.size as usize)).filter(|a| self.grid[*a].fluid());
@@ -44,30 +49,33 @@ impl Map {
                 }
                 while !check.is_empty() {
                     let a = check.pop().unwrap_or((0, 0));
-                    
 
-                    if a.1 < 2 || a.1 > self.size as usize - 2 || a.0 > self.size as usize - 2 || a.0 < 2 {
+                    if a.1 < 2
+                        || a.1 > self.size as usize - 2
+                        || a.0 > self.size as usize - 2
+                        || a.0 < 2
+                    {
                         continue;
                     }
-
 
                     if [
                         (a.0 + 1, a.1),
                         (a.0 - 1, a.1),
                         (a.0, a.1 + 1),
                         (a.0, a.1 - 1),
-                        (a.0 +1, a.1 + 1),
-                        (a.0 +1 , a.1 - 1),
-                        (a.0 -1, a.1 + 1),
-                        (a.0 -1 , a.1 - 1),
-                    ].iter().all(|f| self.grid[*f] == self.grid[a]) {
+                        (a.0 + 1, a.1 + 1),
+                        (a.0 + 1, a.1 - 1),
+                        (a.0 - 1, a.1 + 1),
+                        (a.0 - 1, a.1 - 1),
+                    ]
+                    .iter()
+                    .all(|f| self.grid[*f] == self.grid[a])
+                    {
                         continue;
                     };
 
-
-
                     detected_air[a] = air_id;
-                    
+
                     let row = a.0;
                     let col = a.1;
                     for i in [
@@ -84,26 +92,33 @@ impl Map {
                         }
                     }
                 }
-            }}
-
+            }
+        }
 
         for row in 2..(self.size as usize - 2) {
             for col in 2..(self.size as usize - 2) {
-                    if [
-                        (row + 1, col),
-                        (row - 1, col),
-                        (row, col + 1),
-                        (row, col - 1),
-                    ].iter().all(|f| !self.grid[*f].fluid()) {
-                        continue;
-                    };
+                if [
+                    (row + 1, col),
+                    (row - 1, col),
+                    (row, col + 1),
+                    (row, col - 1),
+                ]
+                .iter()
+                .all(|f| !self.grid[*f].fluid())
+                {
+                    continue;
+                };
                 if self.grid[(row, col)].fluid() && !detected_fluids[(row, col)] {
-                    fluid_surfaces.insert(0,vec![]);
+                    fluid_surfaces.insert(0, vec![]);
                     check = vec![(row, col)];
                 }
                 while !check.is_empty() {
                     let a = check.pop().unwrap_or((0, 0));
-                    if a.1 < 2 || a.1 > self.size as usize - 2 || a.0 > self.size as usize - 2 || a.0 < 2 {
+                    if a.1 < 2
+                        || a.1 > self.size as usize - 2
+                        || a.0 > self.size as usize - 2
+                        || a.0 < 2
+                    {
                         continue;
                     }
                     if ![
@@ -111,14 +126,16 @@ impl Map {
                         (a.0 - 1, a.1),
                         (a.0, a.1 + 1),
                         (a.0, a.1 - 1),
-                        (a.0 +1, a.1 + 1),
-                        (a.0 +1 , a.1 - 1),
-                        (a.0 -1, a.1 + 1),
-                        (a.0 -1 , a.1 - 1),
-                    ].iter().any(|f| self.grid[*f] != self.grid[a]) {
+                        (a.0 + 1, a.1 + 1),
+                        (a.0 + 1, a.1 - 1),
+                        (a.0 - 1, a.1 + 1),
+                        (a.0 - 1, a.1 - 1),
+                    ]
+                    .iter()
+                    .any(|f| self.grid[*f] != self.grid[a])
+                    {
                         continue;
                     };
-
 
                     detected_fluids[a] = true;
                     if self.grid[(a.0 - 1, a.1)] == Pixel::Air {
@@ -135,7 +152,7 @@ impl Map {
                         if detected_fluids[i] {
                             continue;
                         }
-                        
+
                         if self.grid[i] == self.grid[(row, col)] {
                             check.push(i)
                         }
@@ -152,7 +169,8 @@ impl Map {
 
         for surface in fluid_surfaces {
             let swap = fastrand::choose_multiple(surface.iter(), 2);
-            if detected_air[((swap[1].0 - 1), swap[1].1)] != detected_air[((swap[0].0 - 1), swap[0].1)]
+            if detected_air[((swap[1].0 - 1), swap[1].1)]
+                != detected_air[((swap[0].0 - 1), swap[0].1)]
                 || detected_air[((swap[1].0 - 1), swap[1].1)] == 0
                 || detected_air[((swap[0].0 - 1), swap[1].1)] == 0
             {
@@ -170,7 +188,6 @@ impl Map {
                     ((swap[1].0 - 1) as i32, swap[1].1 as i32),
                 )
             }
-            
         }
     }
 
@@ -188,7 +205,10 @@ impl Map {
             return false;
         }
 
-        if force || fastrand::f32() * 100.0 >= self.grid[(row as usize, col as usize)].ignition_probability() {
+        if force
+            || fastrand::f32() * 100.0
+                >= self.grid[(row as usize, col as usize)].ignition_probability()
+        {
             return false;
         }
 
@@ -199,7 +219,7 @@ impl Map {
                 self.update_texture_px.push((row as usize, col as usize));
 
                 return extinguish;
-            },
+            }
 
             Pixel::Explosive => {
                 const RADIUS: i32 = 7;
@@ -214,7 +234,7 @@ impl Map {
                     }
 
                     let height = ((RADIUS * RADIUS - dr * dr) as f64).sqrt().round() as i32;
-                    
+
                     for dc in -height..=height {
                         let target_col = col + dc;
 
@@ -223,18 +243,19 @@ impl Map {
                         }
 
                         let target_px = &mut self.grid[(target_row as usize, target_col as usize)];
-                        self.update_texture_px.push((target_row as usize, target_col as usize));
-                        
+                        self.update_texture_px
+                            .push((target_row as usize, target_col as usize));
+
                         if fastrand::f32() < 0.8 {
                             if target_px.ignition_probability() > 0.0 {
-                                    self.ignite_px(target_col, target_row, true);
+                                self.ignite_px(target_col, target_row, true);
                             } else if *target_px != Pixel::Bedrock {
-                                        *target_px = Pixel::Fire;
+                                *target_px = Pixel::Fire;
                             }
                         }
                     }
                 }
-            },
+            }
 
             _ => {}
         }
@@ -271,7 +292,6 @@ impl Map {
             }
         }
 
-
         // updates based on what pixel is being updated
         match self.grid[(u_row, u_col)] {
             Pixel::Sand => {
@@ -283,13 +303,60 @@ impl Map {
                 }
             }
 
+            Pixel::LiveWood => {
+                if num > 93.5
+                {
+                    match fastrand::i32(0..100) {
+                        0..=20 if self.grid[(u_row - 1, u_col)].is_airy() => {
+                            let px = (
+                                u_row - 1,
+                                (u_col as i32 + fastrand::choice([-1, 1]).unwrap_or(0)) as usize,
+                            );
+                            if self.grid[px].is_airy() {
+                            self.grid[px] = Pixel::LiveWood;
+                            self.update_texture_px.push(px)
+                            }
+                        }
+                        21..=93 => {
+                            if self.grid[(u_row - 1, u_col)].is_airy() {
+                            self.grid[(u_row - 1, u_col)] = Pixel::LiveWood;
+                            self.update_texture_px.push((u_row - 1, u_col));
+                            }
+                        }
+                        _  if self.grid[(u_row - 1, u_col)].is_airy() =>  {
+                            let leaf_size: i32 = fastrand::i32(2..=4);
+                            
+                            for x in -leaf_size..leaf_size {
+                                for y in -leaf_size..leaf_size {
+                                    if x.pow(2) + y.pow(2) <= leaf_size.pow(2) 
+                                    && self.grid.get(row + y, col + x)
+                                    == Some(&Pixel::Air) {
+                                        let px = ((row + y) as usize, (col + x) as usize);
+                                        self.grid[px] = Pixel::Leaf;
+                                        self.update_texture_px.push(px);
+                                    }
+                                }
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+            }
+            Pixel::Seed => {
+                if num < 0.5 && self.grid[(u_row + 1, u_col)] == Pixel::Dirt {
+                    self.grid[(u_row, u_col)] = Pixel::LiveWood;
+                    self.update_texture_px.push((u_row, u_col));
+                }
+            }
+            Pixel::Leaf => {}
+
             Pixel::Candle => {
-                if self.grid[(u_row - 1, u_col)]==Pixel::Air && num > 80.0 {
+                if self.grid[(u_row - 1, u_col)] == Pixel::Air && num > 80.0 {
                     self.grid[(u_row - 1, u_col)] = Pixel::Fire;
                 }
                 self.ignite_px(u_col as i32, u_row as i32 - 1, false);
             }
-            
+
             Pixel::Explosive => {
                 if self.grid[(u_row + 1, u_col)] == Pixel::Explosive {
                     let side = fastrand::choice([0, 2]).unwrap_or(1);
@@ -379,16 +446,17 @@ impl Map {
                 }
             }
             Pixel::Glass => {
-                if self.grid[(u_row - 1, u_col)] == Pixel::Fire 
-                || self.grid[(u_row + 1, u_col)] == Pixel::Fire 
-                || self.grid[(u_row, u_col + 1)] == Pixel::Fire 
-                || self.grid[(u_row, u_col - 1)] == Pixel::Fire {
-                    self.grid[(u_row,u_col)] = Pixel::Glass
+                if self.grid[(u_row - 1, u_col)] == Pixel::Fire
+                    || self.grid[(u_row + 1, u_col)] == Pixel::Fire
+                    || self.grid[(u_row, u_col + 1)] == Pixel::Fire
+                    || self.grid[(u_row, u_col - 1)] == Pixel::Fire
+                {
+                    self.grid[(u_row, u_col)] = Pixel::Glass
                 }
             }
             Pixel::Grass => {
                 if !self.grid[(u_row - 1, u_col)].is_airy()
-                || self.grid[(u_row + 1, u_col)].is_airy()
+                    || self.grid[(u_row + 1, u_col)].is_airy()
                 {
                     self.grid[(u_row, u_col)] = Pixel::Dirt;
                     self.update_texture_px.push((row as usize, col as usize));
@@ -400,9 +468,7 @@ impl Map {
             Pixel::Gold | Pixel::Stone | Pixel::Air | Pixel::Wood => {}
         }
 
-
-
-        if num > 80.0 || player.get_view_port().contains(Vec2::new(col as f32, row as f32))  {
+        // if  num > 90.0 || (player.get_view_port().contains(Vec2::new(col as f32, row as f32)) && num > 90.0) {
         let light_mask_surroundings = [
             self.light_mask.get_pixel(col as u32 - 1, row as u32 - 1),
             self.light_mask.get_pixel(col as u32 - 1, row as u32),
@@ -415,8 +481,6 @@ impl Map {
             self.grid[(u_row, u_col)].light_emission(),
         ];
 
-
-
         let mut color = self.grid[(u_row, u_col)].light_emission();
 
         for c in light_mask_surroundings {
@@ -425,20 +489,17 @@ impl Map {
             }
         }
 
-        
         self.light_mask.set_pixel(
-                col as u32,
-                row as u32,
-                Color {
-                    a: (color.a
-                        + 0.15)
-                        .clamp(0.0, 1.0),
-                        r: 0.0,
-                        g: 0.0,
-                        b: 0.0,
-                },
-            );
-    
-    }
+            col as u32,
+            row as u32,
+            Color {
+                a: (color.a + 0.15).clamp(0.0, 1.0),
+                r: 0.0,
+                g: 0.0,
+                b: 0.0,
+            },
+        );
+
+        // }
     }
 }
