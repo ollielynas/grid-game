@@ -5,6 +5,8 @@ mod player;
 mod skin_style;
 mod update;
 // mod profiling;
+mod craft;
+use crate::craft::craft;
 
 use game_ui::home;
 use savefile::prelude::*;
@@ -241,10 +243,17 @@ async fn main() {
 
         player.get_player_box(0.0, 0.0).render();
 
+        // crafting
 
-        if let Some(wand_rect) = player.wand_rect(map.size as usize) {
+        let wand_rect = player.craft_rect(map.size.clone() as usize).unwrap_or_default();
+            let craft_result = craft(map.get_region(wand_rect));
+                
+
+        if let Some(wand_rect) = player.craft_rect(map.size as usize) {
             if distance >= 25.0 {
                 draw_rectangle_lines(wand_rect.x, wand_rect.y, wand_rect.w, wand_rect.h, 0.3, RED);
+            } else if craft_result.0 {
+                draw_rectangle_lines(wand_rect.x, wand_rect.y, wand_rect.w, wand_rect.h, 0.3, GREEN);
             } else {
                 draw_rectangle_lines(wand_rect.x, wand_rect.y, wand_rect.w, wand_rect.h, 0.3, GRAY);
             }

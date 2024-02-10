@@ -8,7 +8,7 @@ use macroquad::{
     camera::Camera2D, color::BLACK, input::{is_key_down, is_mouse_button_down, mouse_position}, math::{Rect, Vec2}, miniquad::{KeyCode, MouseButton}, shapes::draw_line, time::{get_fps, get_frame_time}, window::{screen_height, screen_width}
 };
 
-use crate::{entity::Entity, map::Pixel};
+use crate::{craft::craft, entity::Entity, map::Pixel};
 use crate::map::Map;
 
 
@@ -272,14 +272,8 @@ impl Default for Player {
         }
     }
 }
+/// TODO get rid of that clone and generally speed up this function
 
-pub fn craft(mut grid: Grid::<Pixel>) -> Grid::<Pixel> {
-
-
-    for (row, col) in 
-    
-    return grid;
-}
 
 impl Player {
     /// don't forget to set spawn point once twh world has been decided on!
@@ -338,7 +332,7 @@ impl Player {
         }
     }
 
-    pub fn wand_rect(&self, size: usize) -> Option<Rect> {
+    pub fn craft_rect(&self, size: usize) -> Option<Rect> {
         match self.item_in_hand {
             Item::Crafter { start: Some(start)} => {
 
@@ -358,8 +352,8 @@ impl Player {
                 Some(Rect {
                     x: min_x as f32,
                     y: min_y as f32,
-                    h: (max_y - min_y) as f32,
-                    w: (max_x - min_x) as f32,
+                    h: (max_y - min_y + 1) as f32,
+                    w: (max_x - min_x + 1) as f32,
                 })
             },
             _ => None
@@ -371,13 +365,15 @@ impl Player {
         
         if matches!(self.item_in_hand, Item::Crafter {start: Some(_)}) {
             
-            let wand_rect = self.wand_rect(map.size.clone() as usize).unwrap_or_default();
+            let wand_rect = self.craft_rect(map.size.clone() as usize).unwrap_or_default();
             let result = craft(map.get_region(wand_rect));
-                    for ((row, col), i) in result.indexed_iter() {
+                if result.0 {
+                    for ((row, col), i) in result.1.indexed_iter() {
                         let px = (row + wand_rect.y as usize, col + wand_rect.x as usize);
                         map.grid[px] = *i;
                         map.update_texture_px.push(px);
                     }
+                }
                 }
                 
                 
