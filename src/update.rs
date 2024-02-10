@@ -304,7 +304,7 @@ impl Map {
             }
 
             Pixel::LiveWood => {
-                if num > 93.5
+                if num > 97.5
                 {
                     match fastrand::i32(0..100) {
                         0..=20 if self.grid[(u_row - 1, u_col)].is_airy() => {

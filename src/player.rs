@@ -1,10 +1,11 @@
 use std::default;
+use grid::Grid;
 use savefile_derive::Savefile;
 use strum::IntoEnumIterator;
 use rayon::prelude::*;
 
 use macroquad::{
-    camera::Camera2D, color::{BLACK}, input::{is_key_down, mouse_position}, math::{Rect, Vec2}, miniquad::KeyCode, shapes::draw_line, time::{get_fps, get_frame_time}, window::{screen_height, screen_width}
+    camera::Camera2D, color::BLACK, input::{is_key_down, is_mouse_button_down, mouse_position}, math::{Rect, Vec2}, miniquad::{KeyCode, MouseButton}, shapes::draw_line, time::{get_fps, get_frame_time}, window::{screen_height, screen_width}
 };
 
 use crate::{entity::Entity, map::Pixel};
@@ -16,6 +17,7 @@ use crate::map::Map;
 // #[derive(PartialEq, Debug, Clone, Savefile)]
 pub enum Item {
     Hand,
+    Crafter {start: Option<(usize,usize)>},
     Pickaxe,
     SpawnEntity{entity: Entity, count: i32},
     PlacePixel{pixel: Pixel, count: i32}
@@ -40,8 +42,10 @@ impl Default for Inventory {
 
 impl Inventory {
     pub fn creative() -> Self {
+        let mut items: Vec<Item> = Pixel::iter().map(|x| Item::PlacePixel { pixel: x, count: 9999999 }).collect();
+        items.push(Item::Crafter { start: None });
         Inventory {
-            items: Pixel::iter().map(|x| Item::PlacePixel { pixel: x, count: 9999999 }).collect(),
+            items,
             open: false,
             animation: 1.0,
         }
@@ -60,6 +64,7 @@ pub struct Player {
     pub name: String,
     pub respawn_pos: Vec2,
     jump_height_timer: f32,
+    craft_timer: f32,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -263,8 +268,17 @@ impl Default for Player {
             name: "Herobrine".to_string(),
             respawn_pos: Vec2 { x: 50.0, y: 50.0 },
             jump_height_timer: 0.0,
+            craft_timer: 0.0,
         }
     }
+}
+
+pub fn craft(mut grid: Grid::<Pixel>) -> Grid::<Pixel> {
+
+
+    for (row, col) in 
+    
+    return grid;
 }
 
 impl Player {
@@ -280,6 +294,11 @@ impl Player {
     pub fn gain_item(&mut self, item: Item) {
         match item {
             Item::Hand => {},
+            Item::Crafter{start} => {
+                if !self.inventory.items.contains(&Item::Crafter{start: None}) {
+                    self.inventory.items.insert(0,Item::Crafter{start: None})
+                }
+            },
             Item::Pickaxe => {
                 if !self.inventory.items.contains(&Item::Pickaxe) {
                     self.inventory.items.insert(0,Item::Pickaxe)
@@ -319,10 +338,73 @@ impl Player {
         }
     }
 
+    pub fn wand_rect(&self, size: usize) -> Option<Rect> {
+        match self.item_in_hand {
+            Item::Crafter { start: Some(start)} => {
+
+                let mouse = mouse_position();
+                let pt = self.cam().screen_to_world(Vec2::new(mouse.0, mouse.1));
+                let distance = (self.x.max(pt.x) - self.x.min(pt.x))
+                .hypot(self.y.max(pt.y) - self.y.min(pt.y));
+    
+                let row = (pt.y as usize).clamp(2, size - 2);
+                let col = (pt.x as usize).clamp(2, size - 2);
+
+                let min_x = start.1.min(col);
+                let max_x = start.1.max(col);
+                let min_y = start.0.min(row);
+                let max_y = start.0.max(row);
+
+                Some(Rect {
+                    x: min_x as f32,
+                    y: min_y as f32,
+                    h: (max_y - min_y) as f32,
+                    w: (max_x - min_x) as f32,
+                })
+            },
+            _ => None
+        }
+    }
+
     pub fn use_item(&mut self, map: &mut Map, row: usize, col: usize) {
-        let pos = (row,col);
-        match &mut self.item_in_hand {
+
+        
+        if matches!(self.item_in_hand, Item::Crafter {start: Some(_)}) {
+            
+            let wand_rect = self.wand_rect(map.size.clone() as usize).unwrap_or_default();
+            let result = craft(map.get_region(wand_rect));
+                    for ((row, col), i) in result.indexed_iter() {
+                        let px = (row + wand_rect.y as usize, col + wand_rect.x as usize);
+                        map.grid[px] = *i;
+                        map.update_texture_px.push(px);
+                    }
+                }
+                
+                
+                let pos = (row,col);
+                match &mut self.item_in_hand {
             Item::Hand => {},
+            Item::Crafter {start: Some(_)} => {
+                if self.craft_timer !=0.0 {
+                    return
+                }
+                self.craft_timer = 0.2;
+                self.item_in_hand = Item::Crafter {start: None }
+            }
+            Item::Crafter {start: None} => {
+                if self.craft_timer !=0.0 {
+                    return
+                }
+                    let mouse = mouse_position();
+                    let pt = self.cam().screen_to_world(Vec2::new(mouse.0, mouse.1));
+                    
+                    let row = (pt.y as usize).clamp(2, map.size as usize - 2);
+                    let col = (pt.x as usize).clamp(2, map.size as usize - 2);
+    
+                    self.item_in_hand = Item::Crafter {start: Some((row, col)) };
+                    self.craft_timer = 0.2;
+
+            },
             Item::Pickaxe => {
                 if map.grid[pos] != Pixel::Air {
                     self.gain_item(Item::PlacePixel { pixel: map.grid[pos], count: 1 });
@@ -544,6 +626,8 @@ impl Player {
 
         self.jump_height_timer -= delta;
         self.jump_height_timer = self.jump_height_timer.clamp(0.0, 1.0);
+        self.craft_timer -= delta;
+        self.craft_timer = self.craft_timer.clamp(0.0, 1.0);
 
         if (on_ground | in_water) && is_key_down(KeyCode::Space) && self.vy > -100.0 {
             self.vy -= if in_water {10.0} else {50.0};

@@ -77,6 +77,24 @@ async fn main() {
             ..Default::default() 
         }
     ).unwrap();
+    let world_material = load_material(
+        ShaderSource::Glsl { 
+            vertex: include_str!("./shader/vertex.glsl"), 
+            fragment: include_str!("./shader/world_frag.glsl")
+        },
+        MaterialParams { 
+            pipeline_params: PipelineParams {
+                color_blend: Some(BlendState::new(
+                    Equation::Add,
+                    BlendFactor::Value(BlendValue::SourceAlpha),
+                    BlendFactor::OneMinusValue(BlendValue::SourceAlpha))
+                ),
+                ..Default::default()
+            },
+            uniforms: vec![("textureSize".to_owned(), UniformType::Float2), ("canvasSize".to_owned(), UniformType::Float2)], 
+            ..Default::default() 
+        }
+    ).unwrap();
     let overlay_material = load_material(
         ShaderSource::Glsl { 
             vertex: include_str!("./shader/vertex.glsl"), 
@@ -170,6 +188,8 @@ async fn main() {
             );
         }
 
+        gl_use_material(&world_material);
+        world_material.set_uniform("textureSize", (map.size as f32, map.size as f32));
         draw_texture_ex(
             &texture,
             0.0,
@@ -220,6 +240,15 @@ async fn main() {
         };
 
         player.get_player_box(0.0, 0.0).render();
+
+
+        if let Some(wand_rect) = player.wand_rect(map.size as usize) {
+            if distance >= 25.0 {
+                draw_rectangle_lines(wand_rect.x, wand_rect.y, wand_rect.w, wand_rect.h, 0.3, RED);
+            } else {
+                draw_rectangle_lines(wand_rect.x, wand_rect.y, wand_rect.w, wand_rect.h, 0.3, GRAY);
+            }
+        }
 
         root_ui().label(None, " ");
         root_ui().label(None, " ");
