@@ -1,17 +1,17 @@
-#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 
 use grid::*;
 use macroquad::{
     color::{Color, WHITE}, math::Rect, texture::Image
 };
+use savefile_derive::{Savefile, SavefileNoIntrospect};
 use strum_macros::EnumIter;
 
 use perlin2d::PerlinNoise2D;
 
 use crate::entity::{Entity, EntityType};
 
-#[derive(Copy, Clone, PartialEq, Eq, Debug, EnumIter)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug, EnumIter, Savefile)]
 pub enum Pixel {
     Air,
     Sand,
@@ -170,12 +170,14 @@ impl Pixel {
 
 
 }
-
+// #[derive(Savefile)]
 pub struct Map {
     pub grid: Grid<Pixel>,
     pub size: u32,
     pub update_texture_px: Vec<(usize, usize)>,
+    // #[savefile_ignore]
     pub image: Image,
+    // #[savefile_ignore]
     pub light_mask: Image,
     pub entities: Vec<Entity>,
     pub name: String,

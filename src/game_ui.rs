@@ -1,7 +1,7 @@
 use std::default;
 
-use egui::util::hash;
-use macroquad::{experimental::animation, math::{vec2, Vec2}, miniquad::Context, time::get_frame_time, ui::{root_ui, widgets::{self, Group, Popup}}, window::{screen_height, screen_width}, Window};
+// use egui::util::hash;
+use macroquad::{experimental::animation, math::{vec2, Vec2}, miniquad::Context, time::get_frame_time, ui::{hash, root_ui, widgets::{self, Group, Popup}}, window::{screen_height, screen_width}, Window};
 use crate::{map::Map, player::{Inventory, Player}};
 use macroquad::prelude::*;
 
@@ -226,7 +226,7 @@ pub async fn map_gen() -> Map {
         root_ui().checkbox(432, "Blank World", &mut blank);
 
         if root_ui().button(None, "Create") {
-            fastrand::seed(hash(seed.clone()));
+            fastrand::seed(hash!(seed.clone()));
             map = Map::new_square(map_size as usize, name.clone());
             if !blank {
                 map.gen_terrain();

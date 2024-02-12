@@ -1,3 +1,7 @@
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
+
+
 mod entity;
 mod game_ui;
 mod map;
@@ -11,6 +15,8 @@ use crate::craft::craft;
 use game_ui::home;
 use savefile::prelude::*;
 
+// use console_error_panic_hook;
+use std::panic;
 
 
 use macroquad::{
@@ -34,43 +40,22 @@ fn window_conf() -> Conf {
 
 #[macroquad::main(window_conf)]
 async fn main() {
-    
+    // console_error_panic_hook::set_once();
+
     let skins = skin_style::get_skins();
     
     root_ui().push_skin(&skins[1]);
-
-    let (mut map, mut player) = home().await;
-
-
-
-    let mut texture: Texture2D = Texture2D::from_image(&map.image);
-    let mut light_texture: Texture2D = Texture2D::from_image(&map.light_mask);
-
-    texture.set_filter(FilterMode::Nearest);
-    //light_texture.set_filter(FilterMode::Nearest);
-
-    // map.make_square(map::Pixel::Water);
-    // map.make_log();
     
-
-
-    let paused = false;
-    show_mouse(false);
-
-    // let texture_heatmap: Texture2D = Texture2D::from_image(&map.heatmap);
-
-    let mut hover: Option<Pixel>;
-
-    let light_material = load_material(
-        ShaderSource::Glsl { 
-            vertex: include_str!("./shader/vertex.glsl"), 
-            fragment: include_str!("./shader/light_frag.glsl")
-        },
-        MaterialParams { 
-            pipeline_params: PipelineParams {
-                color_blend: Some(BlendState::new(
-                    Equation::Add,
-                    BlendFactor::Value(BlendValue::SourceAlpha),
+        let light_material = if cfg!(target_family = "wasm") {None} else {Some(load_material(
+                ShaderSource::Glsl { 
+                        vertex: include_str!("./shader/vertex.glsl"), 
+                        fragment: include_str!("./shader/light_frag.glsl")
+                    },
+                    MaterialParams { 
+                            pipeline_params: PipelineParams {
+                                    color_blend: Some(BlendState::new(
+                                            Equation::Add,
+                                            BlendFactor::Value(BlendValue::SourceAlpha),
                     BlendFactor::OneMinusValue(BlendValue::SourceAlpha))
                 ),
                 ..Default::default()
@@ -78,45 +63,71 @@ async fn main() {
             uniforms: vec![("textureSize".to_owned(), UniformType::Float2), ("canvasSize".to_owned(), UniformType::Float2)], 
             ..Default::default() 
         }
-    ).unwrap();
-    let world_material = load_material(
-        ShaderSource::Glsl { 
+    ).unwrap())};
+    let world_material = if cfg!(target_family = "wasm") {None} else {Some(load_material(
+            ShaderSource::Glsl { 
             vertex: include_str!("./shader/vertex.glsl"), 
             fragment: include_str!("./shader/world_frag.glsl")
         },
         MaterialParams { 
-            pipeline_params: PipelineParams {
-                color_blend: Some(BlendState::new(
-                    Equation::Add,
-                    BlendFactor::Value(BlendValue::SourceAlpha),
-                    BlendFactor::OneMinusValue(BlendValue::SourceAlpha))
-                ),
-                ..Default::default()
-            },
+                pipeline_params: PipelineParams {
+                        color_blend: Some(BlendState::new(
+                                Equation::Add,
+                                BlendFactor::Value(BlendValue::SourceAlpha),
+                                BlendFactor::OneMinusValue(BlendValue::SourceAlpha))
+                            ),
+                            ..Default::default()
+                        },
             uniforms: vec![("textureSize".to_owned(), UniformType::Float2), ("canvasSize".to_owned(), UniformType::Float2)], 
             ..Default::default() 
         }
-    ).unwrap();
-    let overlay_material = load_material(
-        ShaderSource::Glsl { 
-            vertex: include_str!("./shader/vertex.glsl"), 
-            fragment: include_str!("./shader/damage_frag.glsl")
-        },
-        MaterialParams {
-            pipeline_params: PipelineParams {
-                color_blend: Some(BlendState::new(
-                    Equation::Add,
-                    BlendFactor::Value(BlendValue::SourceAlpha),
-                    BlendFactor::OneMinusValue(BlendValue::SourceAlpha))
-                ),
-                ..Default::default()
-            },
-            uniforms: vec![("ScreenSize".to_owned(), UniformType::Float2), ("Damage".to_owned(), UniformType::Float1)], 
-            ..Default::default() 
-        }
-    ).unwrap();
-
-    let mut average_damage = vec![0.0, 0.0, 0.0];
+    ).unwrap())};
+    let overlay_material = if cfg!(target_family = "wasm") {None} else {Some(load_material(
+            ShaderSource::Glsl { 
+                    vertex: include_str!("./shader/vertex.glsl"), 
+                    fragment: include_str!("./shader/damage_frag.glsl")
+                },
+                MaterialParams {
+                        pipeline_params: PipelineParams {
+                                color_blend: Some(BlendState::new(
+                                        Equation::Add,
+                                        BlendFactor::Value(BlendValue::SourceAlpha),
+                                        BlendFactor::OneMinusValue(BlendValue::SourceAlpha))
+                                    ),
+                                    ..Default::default()
+                                },
+                                uniforms: vec![("ScreenSize".to_owned(), UniformType::Float2), ("Damage".to_owned(), UniformType::Float1)], 
+                                ..Default::default() 
+                            }
+                        ).unwrap())};
+                        
+                    
+                        
+                        
+                        let (mut map, mut player) = home().await;
+                        
+                        
+                        
+                        let mut texture: Texture2D = Texture2D::from_image(&map.image);
+                        let mut light_texture: Texture2D = Texture2D::from_image(&map.light_mask);
+                        
+                        texture.set_filter(FilterMode::Nearest);
+                        
+                        //light_texture.set_filter(FilterMode::Nearest);
+                        
+                        // map.make_square(map::Pixel::Water);
+                        // map.make_log();
+                        
+                        
+                        
+                        let paused = false;
+                        show_mouse(false);
+                        
+                        // let texture_heatmap: Texture2D = Texture2D::from_image(&map.heatmap);
+                        
+                        let mut hover: Option<Pixel>;
+                        
+                        let mut average_damage = vec![0.0, 0.0, 0.0];
 
     // root_ui().push_skin(&skin);
     // root_ui().pop_skin();
@@ -189,9 +200,12 @@ async fn main() {
                 },
             );
         }
-
+        if let Some(ref world_material) = world_material {
+        if cfg!(not(target_family = "wasm")) {
         gl_use_material(&world_material);
         world_material.set_uniform("textureSize", (map.size as f32, map.size as f32));
+        }
+         }
         draw_texture_ex(
             &texture,
             0.0,
@@ -201,9 +215,11 @@ async fn main() {
                 ..Default::default()
             },
         );
-
-        gl_use_material(&light_material);
-        light_material.set_uniform("textureSize", (map.size as f32, map.size as f32));
+        if let Some(ref light_material) = light_material {
+            if cfg!(not(target_family = "wasm")) {
+                gl_use_material(&light_material);
+                light_material.set_uniform("textureSize", (map.size as f32, map.size as f32));
+            }}
         draw_texture_ex(
             &light_texture,
             0.0,
@@ -213,18 +229,20 @@ async fn main() {
                 ..Default::default()
             },
         );
-        
-        
-        gl_use_material(&overlay_material);
-        overlay_material.set_uniform("ScreenSize", (screen_width(), screen_height()));
-        overlay_material.set_uniform("Damage", average_damage.iter().sum::<f32>()/average_damage.len() as f32);
+
 
         let v_port = player.view_port_cache;
+        
+        if let Some(ref overlay_material) = overlay_material {
+            if cfg!(not(target_family = "wasm")) {
+                gl_use_material(&overlay_material);
+        overlay_material.set_uniform("ScreenSize", (screen_width(), screen_height()));
+        overlay_material.set_uniform("Damage", average_damage.iter().sum::<f32>()/average_damage.len() as f32);
+        draw_rectangle(v_port.x, v_port.y, v_port.w, v_port.h, WHITE);
+            }}
 
         
         
-        draw_rectangle(v_port.x, v_port.y, v_port.w, v_port.h, WHITE);
-        // draw_rectangle(0.0, 0.0, 1000.0,1000.0, WHITE);
 
         gl_use_default_material();
 
