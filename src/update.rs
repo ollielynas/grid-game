@@ -46,6 +46,7 @@ impl Map {
                         (row + 1, col),
                         (row - 1, col),
                         (row, col + 1),
+                        (row, col - 1),
                     ]
                     {
                     alone = alone && !(self.grid[f] == Pixel::Air);
@@ -99,7 +100,9 @@ impl Map {
                     let mut alone = true;
                     for f in  [
                         (row + 1, col),
+                        (row - 1, col),
                         (row, col + 1),
+                        (row, col - 1),
                         ]
                         {
                             alone = alone && !self.grid[f].fluid()
@@ -472,7 +475,7 @@ impl Map {
             col as u32,
             row as u32,
             Color {
-                a: (color.a + 0.15).clamp(0.0, 1.0),
+                a: (color.a + if cfg!(target_family = "wasm") {0.25} else {0.15}).clamp(0.3, 1.0),
                 r: 0.0,
                 g: 0.0,
                 b: 0.0,

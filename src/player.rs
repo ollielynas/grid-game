@@ -85,7 +85,7 @@ pub struct Inventory {
 impl Default for Inventory {
     fn default() -> Self {
         Inventory {
-            items: vec![],
+            items: vec![Item::Crafter { start: None }],
             open: false,
             animation: 1.0,
         }
