@@ -63,7 +63,7 @@ impl Pixel {
             Pixel::Gold => Color::from_rgba(205, 127, 50, 255),
             Pixel::Lava => Color::from_rgba(247, 104, 6, 255),
             Pixel::Oil => Color::from_rgba(0, 0, 0, 255),
-            Pixel::Loot => Color::from_rgba(10, 0, 0, 255),
+            Pixel::Loot => Color::from_rgba(255, 105, 180, 255),
             Pixel::Candle => Color::from_rgba(239, 230, 211, 255),
             Pixel::Glass => Color::from_rgba(100, 104, 230, 5),
             Pixel::Bedrock => Color::from_rgba(fastrand::u8(0..255), fastrand::u8(0..255), fastrand::u8(0..255), 255),

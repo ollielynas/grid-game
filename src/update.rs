@@ -475,7 +475,7 @@ impl Map {
             col as u32,
             row as u32,
             Color {
-                a: (color.a + if cfg!(target_family = "wasm") {0.25} else {0.15}).clamp(0.3, 1.0),
+                a: (color.a + if cfg!(target_family = "wasm") {0.15} else {0.15}).clamp(0.0, 1.0),
                 r: 0.0,
                 g: 0.0,
                 b: 0.0,

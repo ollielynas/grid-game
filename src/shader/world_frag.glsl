@@ -89,37 +89,15 @@ float rand2(vec2 co){
     return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
 }
 
-vec4 rainbow(float level)
-{
-	/*
-		Target colors
-		=============
-		
-		L  x   color
-		0  0.0 vec4(1.0, 0.0, 0.0, 1.0);
-		1  0.2 vec4(1.0, 0.5, 0.0, 1.0);
-		2  0.4 vec4(1.0, 1.0, 0.0, 1.0);
-		3  0.6 vec4(0.0, 0.5, 0.0, 1.0);
-		4  0.8 vec4(0.0, 0.0, 1.0, 1.0);
-		5  1.0 vec4(0.5, 0.0, 0.5, 1.0);
-	*/
-	
-	float r = float(level <= 2.0) + float(level > 4.0) * 0.5;
-	float g = max(1.0 - abs(level - 2.0) * 0.5, 0.0);
-	float b = (1.0 - (level - 4.0) * 0.5) * float(level >= 4.0);
-	return mix(vec4(r, g, b, 1.0), vec4(1.0, 1.0, 1.0, 1.0), 0.5);
+vec3 hsb2rgb( in vec3 c ){
+    vec3 rgb = clamp(abs(mod(c.x*6.0+vec3(0.0,4.0,2.0),
+                             6.0)-3.0)-1.0,
+                     0.0,
+                     1.0 );
+    rgb = rgb*rgb*(3.0-2.0*rgb);
+    return c.z * mix(vec3(1.0), rgb, c.y);
 }
 
-vec4 smoothRainbow (float x)
-{
-    float level1 = floor(x*6.0);
-    float level2 = min(6.0, floor(x*6.0) + 1.0);
-    
-    vec4 a = rainbow(level1);
-    vec4 b = rainbow(level2);
-    
-    return mix(a, b, fract(x*6.0));
-}
 
 
 void main() {
@@ -130,8 +108,8 @@ void main() {
     if (px_rgb == vec4(247.0, 104.0, 6.0, 255.0)) {
         // color = mix(vec4(0.8784, 0.2471, 0.0, 1.0), vec4(0.8941, 0.3059, 0.0314, 1.0), sin(time*5.0*sin(rand2(round(uv * vec2(300.0))))));
         color = round(vec4(10.0) * mix(vec4(0.7333, 0.1529, 0.0078, 1.0), vec4(0.9451, 0.4314, 0.1961, 1.0), cnoise(vec3(pixelCoord.x/2.0, pixelCoord.y/2.0 + time/3.0, time/2.0)) / 2.0 + 0.5))/vec4(10.0);
-    } else if (px_rgb == vec4(10.0, 0.0, 0.0, 255.0)) {
-        color = smoothRainbow(sin(pixelCoord.y + pixelCoord.x - time)/2.0 + 0.5);
+    } else if (px_rgb == vec4(255.0, 105.0, 180.0, 255.0)) {
+        color = vec4(hsb2rgb(vec3(pixelCoord.x/2.0 + pixelCoord.y + time, 0.5, 1.0)), 1.0f);
     }else {
         color = texture(Texture, uv);
     }
