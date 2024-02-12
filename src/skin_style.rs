@@ -187,6 +187,9 @@ pub fn get_skins() -> Vec<Skin> {
             .font_size(25)
             .build();
 
+
+            let scrollbar_style = root_ui().default_skin().scrollbar_style;
+
         Skin {
             window_style,
             button_style,
@@ -194,6 +197,7 @@ pub fn get_skins() -> Vec<Skin> {
             checkbox_style,
             editbox_style,
             combobox_style,
+            scrollbar_style,
             ..root_ui().default_skin()
         }
     };

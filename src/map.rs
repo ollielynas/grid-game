@@ -1,3 +1,6 @@
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
+
 use grid::*;
 use macroquad::{
     color::{Color, WHITE}, math::Rect, texture::Image
@@ -30,6 +33,7 @@ pub enum Pixel {
     LiveWood,
     Seed,
     Leaf,
+    Loot,
 }
 
 impl Default for Pixel {
@@ -59,6 +63,7 @@ impl Pixel {
             Pixel::Gold => Color::from_rgba(205, 127, 50, 255),
             Pixel::Lava => Color::from_rgba(247, 104, 6, 255),
             Pixel::Oil => Color::from_rgba(0, 0, 0, 255),
+            Pixel::Loot => Color::from_rgba(10, 0, 0, 255),
             Pixel::Candle => Color::from_rgba(239, 230, 211, 255),
             Pixel::Glass => Color::from_rgba(100, 104, 230, 5),
             Pixel::Bedrock => Color::from_rgba(fastrand::u8(0..255), fastrand::u8(0..255), fastrand::u8(0..255), 255),
@@ -75,6 +80,7 @@ impl Pixel {
             Pixel::Lava => {Color::new(1.0, 0.0, 0.0, 0.0)},
             Pixel::Fire => {Color::new(1.0, 0.0, 0.0, 0.0)},
             Pixel::Leaf => {Color::new(0.0, 1.0, 0.0, 0.5)},
+            Pixel::Loot => {Color::new(0.0, 1.0, 0.0, 0.3)},
             _ => {Color::new(0.0, 0.0, 0.0, 1.0)}
         }
     }
@@ -103,6 +109,7 @@ impl Pixel {
             |Pixel::Leaf 
             |Pixel::LiveWood 
             |Pixel::Stone
+            |Pixel::Loot
             |Pixel::Candle
             |Pixel::Glass
             |Pixel::Gold => None,
@@ -152,7 +159,7 @@ impl Pixel {
 
     pub fn can_hit(&self) -> bool {
         match self {
-            Pixel::Candle | Pixel::Glass |Pixel::Sand | Pixel::Dirt | Pixel::Bedrock | Pixel::Wood | Pixel::Stone | Pixel::Gold | Pixel::Grass | Pixel::Explosive => true,
+            Pixel::Loot | Pixel::Candle | Pixel::Glass |Pixel::Sand | Pixel::Dirt | Pixel::Bedrock | Pixel::Wood | Pixel::Stone | Pixel::Gold | Pixel::Grass | Pixel::Explosive => true,
             Pixel::LiveWood | Pixel::Leaf | Pixel::Seed | Pixel::Oil |Pixel::Air | Pixel::Lava | Pixel::Steam | Pixel::Water | Pixel::Fire | Pixel::Smoke => false
         }
     }
@@ -253,8 +260,11 @@ impl Map {
                 
                 if perlin3.get_noise(col as f64, row as f64) > 1200.0 {
                     self.grid[(row,col)] = Pixel::Gold;
-                }else {
-                self.grid[(row,col)] = Pixel::Stone;
+                }else if fastrand::f32() < 0.0005 && row as f32 > self.size as f32 * 0.6 {
+                    self.grid[(row,col)] = Pixel::Loot;
+                } else {
+                    self.grid[(row,col)] = Pixel::Stone;
+                
                 }
             }
             if perlin.get_noise(col as f64, row as f64) > 150.0 && row as f32 > self.size as f32 * 0.85 {

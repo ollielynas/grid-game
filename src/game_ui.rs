@@ -61,6 +61,18 @@ impl Player {
             // Draw things before egui
     
             // egui_macroquad::draw();
+        } else {
+        
+        //     if root_ui()..button(None, format!("Holding: {}", self.item_in_hand)) {
+                                
+        //     }
+        // for (i,item) in self.inventory.items.iter().enumerate() {
+        //     if i < 5 {
+        //         if root_ui().button(None, format!("{item}")) {
+        //             equip_item = Some(item.clone());
+        //         }
+        //     }
+        // }
         }
 
         // equip_item = Some(item.clone());

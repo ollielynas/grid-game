@@ -13,6 +13,16 @@ pub fn craft(mut grid: Grid::<Pixel>) -> (bool, Grid::<Pixel>) {
                     grid[(row-1,col)] = Pixel::Lava;
                     changed = true;
                 }
+                Pixel::Sand if row > 0 && grid[(row-1,col)] == Pixel::Oil => {
+                    grid[(row-1,col)] = Pixel::Air;
+                    grid[(row,col)] = Pixel::Explosive;
+                    changed = true;
+                }
+                Pixel::Wood if row > 0 && grid[(row-1,col)] == Pixel::Oil => {
+                    grid[(row-1,col)] = Pixel::Air;
+                    grid[(row,col)] = Pixel::Candle;
+                    changed = true;
+                }
                 Pixel::LiveWood => {
                     grid[(row,col)] = Pixel::Wood;
                     changed = true;

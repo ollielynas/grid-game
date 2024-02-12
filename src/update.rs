@@ -444,7 +444,7 @@ impl Map {
             Pixel::Bedrock => {
                 self.update_texture_px.push((row as usize, col as usize));
             }
-            Pixel::Gold | Pixel::Stone | Pixel::Air | Pixel::Wood => {}
+            Pixel::Gold | Pixel::Stone | Pixel::Air | Pixel::Wood | Pixel::Loot => {}
         }
 
         if  num > 90.0 || (player.view_port_cache.contains(Vec2::new(col as f32, row as f32))) {
