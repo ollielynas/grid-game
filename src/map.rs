@@ -1,5 +1,7 @@
 
 
+use std::collections::HashSet;
+
 use grid::*;
 use macroquad::{
     color::{Color, WHITE}, math::Rect, texture::Image
@@ -33,6 +35,7 @@ pub enum Pixel {
     LiveWood,
     Seed,
     Leaf,
+    Lamp,
     Loot,
 }
 
@@ -48,6 +51,7 @@ impl Pixel {
     fn color(&self) -> Color {
         match self {
             Pixel::Air => Color::from_rgba(250, 251, 255, 0),
+            Pixel::Lamp => Color::from_rgba(250, 231, 235, 255),
             Pixel::Sand => Color::from_rgba(207, 215, 157, 255),
             Pixel::Fire => Color::from_rgba(193, 84, 45, 255),
             Pixel::Wood => Color::from_rgba(139, 107, 59, 255),
@@ -73,11 +77,12 @@ impl Pixel {
 
     pub fn light_emission(&self) -> Color {
         match self {
-            Pixel::Air => {Color::new(1.0, 1.0, 1.0, 0.05)},
-            Pixel::Glass => {Color::new(1.0, 1.0, 1.0, 0.05)},
-            Pixel::Steam | Pixel::Smoke => {Color::new(1.0, 1.0, 1.0, 0.1)},
+            Pixel::Air => {Color::new(1.0, 1.0, 1.0, 0.4)},
+            Pixel::Glass => {Color::new(1.0, 1.0, 1.0, 0.4)},
+            Pixel::Steam | Pixel::Smoke => {Color::new(1.0, 1.0, 1.0, 0.4)},
             Pixel::Water => {Color::new(1.0, 1.0, 1.0, 0.5)},
             Pixel::Lava => {Color::new(1.0, 0.0, 0.0, 0.0)},
+            Pixel::Lamp => {Color::new(1.0, 0.0, 0.0, 0.0)},
             Pixel::Fire => {Color::new(1.0, 0.0, 0.0, 0.0)},
             Pixel::Leaf => {Color::new(0.0, 1.0, 0.0, 0.5)},
             Pixel::Loot => {Color::new(0.0, 1.0, 0.0, 0.3)},
@@ -106,6 +111,7 @@ impl Pixel {
             Pixel::Fire => Some(2),
             Pixel::Bedrock
             |Pixel::Wood 
+            |Pixel::Lamp 
             |Pixel::Leaf 
             |Pixel::LiveWood 
             |Pixel::Stone
@@ -160,7 +166,7 @@ impl Pixel {
     pub fn can_hit(&self) -> bool {
         match self {
             Pixel::Loot | Pixel::Candle | Pixel::Glass |Pixel::Sand | Pixel::Dirt | Pixel::Bedrock | Pixel::Wood | Pixel::Stone | Pixel::Gold | Pixel::Grass | Pixel::Explosive => true,
-            Pixel::LiveWood | Pixel::Leaf | Pixel::Seed | Pixel::Oil |Pixel::Air | Pixel::Lava | Pixel::Steam | Pixel::Water | Pixel::Fire | Pixel::Smoke => false
+            Pixel::Lamp | Pixel::LiveWood | Pixel::Leaf | Pixel::Seed | Pixel::Oil |Pixel::Air | Pixel::Lava | Pixel::Steam | Pixel::Water | Pixel::Fire | Pixel::Smoke => false
         }
     }
 
@@ -174,13 +180,17 @@ impl Pixel {
 pub struct Map {
     pub grid: Grid<Pixel>,
     pub size: u32,
-    pub update_texture_px: Vec<(usize, usize)>,
+    pub update_texture_px: HashSet::<(usize, usize)>,
     // #[savefile_ignore]
     pub image: Image,
     // #[savefile_ignore]
     pub light_mask: Image,
     pub entities: Vec<Entity>,
     pub name: String,
+    pub detected_air: Grid<i16>,
+    pub detected_fluids: Grid<bool>,
+    pub realistic_fluid: bool,
+    pub sky_light: Vec<usize>,
     // pub heatmap: Image,
 }
 
@@ -291,7 +301,7 @@ impl Map {
                 self.grid[(row,col)] = Pixel::Dirt;
             }
         }
-            self.update_texture_px.push((row, col));
+            self.update_texture_px.insert((row, col));
         }
         for ((row, col), _) in new_grid.indexed_iter() {
             let num = fastrand::u32(0..1000);
@@ -324,11 +334,15 @@ impl Map {
         return Map {
             grid,
             size: size as u32,
-            update_texture_px: vec![],
+            update_texture_px: HashSet::new(),
             image: Image::gen_image_color(size as u16, size as u16, WHITE),
             light_mask: Image::gen_image_color(size as u16, size as u16, Color { r: 0.0, g: 0.0, b: 0.0, a: 0.3 }),
             entities: vec![],
+            detected_air: Grid::from_vec(vec![0; size.pow(2) as usize], size as usize),
+            detected_fluids: Grid::from_vec(vec![false; size.pow(2) as usize], size as usize),
             name,
+            realistic_fluid: true,
+            sky_light: vec![0;size]
         };
     }
 
@@ -344,10 +358,10 @@ impl Map {
 
         for ((row, col), i) in self.grid.indexed_iter_mut() {
             *i = if row > third && row < third * 2 && col > third && col < third * 2 {
-                self.update_texture_px.push((row, col));
+                self.update_texture_px.insert((row, col));
                 pixel
             } else {
-                self.update_texture_px.push((row, col));
+                self.update_texture_px.insert((row, col));
                 Pixel::Air
             };
         }
@@ -374,18 +388,16 @@ impl Map {
 
     /// updates the image based on the pixels listed in the 'update_texture_px' list
     pub fn update_image(&mut self) {
-
-
         for (row, col) in &self.update_texture_px {
             self.image.set_pixel(
                 *col as u32,
                 *row as u32,
                 self.grid[(*row, *col)].color(),
-            )
+            );
+
+            if row > &2 && self.sky_light[*col] > *row && !self.grid[(*row, *col)].is_airy() {
+                self.sky_light[*col]  = *row - 1;
+            }
         }
-
-
-
-
     }
 }

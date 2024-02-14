@@ -68,6 +68,7 @@ impl Display for Item {
                     Pixel::Seed => "Seed",
                     Pixel::Leaf => "Leaf",
                     Pixel::Loot => "Loot Box",
+                    Pixel::Lamp => "Lamp",
                 },
                 count
             ),
@@ -478,7 +479,7 @@ impl Player {
                 for ((row, col), i) in result.1.indexed_iter() {
                     let px = (row + wand_rect.y as usize, col + wand_rect.x as usize);
                     map.grid[px] = *i;
-                    map.update_texture_px.push(px);
+                    map.update_texture_px.insert(px);
                 }
             }
         }

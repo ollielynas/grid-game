@@ -165,7 +165,7 @@ pub async fn home() -> (Map, Player) {
 
                 final_player.respawn_pos = respawn_point;
                 for ((row, col),_) in final_map.grid.indexed_iter() {
-                    final_map.update_texture_px.push((row, col))
+                    final_map.update_texture_px.insert((row, col));
                 }
                 final_map.update_image();
                 return (final_map, final_player);
@@ -210,20 +210,29 @@ pub async fn player_gen() -> Player {
 
 pub async fn map_gen() -> Map {
 
-    let mut map_size = 500.0;
+    let mut map_size: i32 = 500;
+    let mut map_size_string: String = "500".to_owned();
     let mut seed = fastrand::i32(1000000000..2147483647).to_string();
     let mut name = "Map Name Here".to_owned();
     let mut map: Map;
     let mut blank = false;
+    let mut realistic_fluid = true;
     loop {
         clear_background(WHITE);
 
         root_ui().label(None, "New World");
-        root_ui().slider(0, "World Size", 101.0..5000.0, &mut map_size);
+
         root_ui().input_text(2, "Name", &mut name);
         root_ui().input_text(3, "Seed", &mut seed);
-
+        root_ui().input_text(0, "World Size", &mut map_size_string);
+        if let Ok(num) = map_size_string.parse::<i32>() {
+            map_size = num;
+        }else {
+            root_ui().label(None, "invalid world size");
+        }
+        
         root_ui().checkbox(432, "Blank World", &mut blank);
+        root_ui().checkbox(432, "Realistic Fluid", &mut realistic_fluid);
 
         if root_ui().button(None, "Create") {
             fastrand::seed(hash!(seed.clone()));
@@ -231,6 +240,7 @@ pub async fn map_gen() -> Map {
             if !blank {
                 map.gen_terrain();
             }
+            map.realistic_fluid = realistic_fluid;
             return map;
         }
 

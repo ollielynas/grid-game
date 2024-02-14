@@ -14,7 +14,7 @@ use game_ui::home;
 use savefile::prelude::*;
 
 // use console_error_panic_hook;
-use std::panic;
+use std::{collections::HashSet, panic};
 
 use macroquad::{
     miniquad::{BlendFactor, BlendState, BlendValue, Equation},
@@ -203,14 +203,14 @@ async fn main() {
             && distance < 25.0
             && !player.inventory.open
         {
-            map.update_texture_px.push((mouse_row, mouse_col));
+            map.update_texture_px.insert((mouse_row, mouse_col));
             player.use_item(&mut map, mouse_row, mouse_col);
         }
 
         if !map.update_texture_px.is_empty() {
             map.update_image();
             texture.update(&map.image);
-            map.update_texture_px = vec![];
+            map.update_texture_px = HashSet::new();
         }
 
         draw_rectangle(player.x, player.y, 2.0, 3.0, ORANGE);
