@@ -395,7 +395,7 @@ impl Map {
                 self.grid[(*row, *col)].color(),
             );
 
-            if row > &2 && self.sky_light[*col] > *row && !self.grid[(*row, *col)].is_airy() {
+            if row > &2 && self.sky_light[*col] > *row && !(self.grid[(*row, *col)].is_airy() || self.grid[(*row, *col)] == Pixel::Glass) {
                 self.sky_light[*col]  = *row - 1;
             }
         }

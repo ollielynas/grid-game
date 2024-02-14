@@ -29,7 +29,7 @@ impl Map {
         };
 
         for (col, row) in self.sky_light.iter_mut().enumerate() {
-            if *row <= self.size as usize - 2 && self.grid[(*row + 1 as usize, col)].is_airy() {
+            if *row <= self.size as usize - 2 && (self.grid[(*row + 1 as usize, col)].is_airy() || self.grid[(*row, col)] == Pixel::Glass) {
                 *row += 1;
             }
         }
@@ -361,6 +361,7 @@ impl Map {
             Pixel::Candle => {
                 if self.grid[(u_row - 1, u_col)] == Pixel::Air && num > 80.0 {
                     self.grid[(u_row - 1, u_col)] = Pixel::Fire;
+                    self.update_texture_px.insert((row as usize -1, col as usize));
                 }
                 self.ignite_px(u_col as i32, u_row as i32 - 1, false);
             }
