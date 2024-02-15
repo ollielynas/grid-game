@@ -4,19 +4,22 @@ mod entity;
 mod game_ui;
 mod map;
 mod player;
-mod skin_style;
+mod settings;
 mod update;
+
+use egui_macroquad::{egui, macroquad::{self, prelude::*}};
 // mod profiling;
 mod craft;
 use crate::craft::craft;
 
 use game_ui::home;
 use savefile::prelude::*;
+use settings::Settings;
 
 // use console_error_panic_hook;
 use std::{collections::HashSet, panic};
 
-use macroquad::{
+use egui_macroquad::macroquad::{
     miniquad::{BlendFactor, BlendState, BlendValue, Equation},
     prelude::*,
     ui::{root_ui, Skin, Style},
@@ -41,19 +44,13 @@ fn window_conf() -> Conf {
 async fn main() {
     // console_error_panic_hook::set_once();
 
-    let skins = skin_style::get_skins();
-
-    root_ui().push_skin(&skins[1]);
-
     let light_material = if cfg!(target_family = "wasm") {
         None
     } else {
         Some(
             load_material(
-                ShaderSource::Glsl {
-                    vertex: include_str!("./shader/vertex.glsl"),
-                    fragment: include_str!("./shader/light_frag.glsl"),
-                },
+                include_str!("./shader/vertex.glsl"),
+                include_str!("./shader/light_frag.glsl"),
                 MaterialParams {
                     pipeline_params: PipelineParams {
                         color_blend: Some(BlendState::new(
@@ -78,10 +75,10 @@ async fn main() {
     } else {
         Some(
             load_material(
-                ShaderSource::Glsl {
-                    vertex: include_str!("./shader/vertex.glsl"),
-                    fragment: include_str!("./shader/world_frag.glsl"),
-                },
+
+                    include_str!("./shader/vertex.glsl"),
+                    include_str!("./shader/world_frag.glsl"),
+                
                 MaterialParams {
                     pipeline_params: PipelineParams {
                         color_blend: Some(BlendState::new(
@@ -106,10 +103,10 @@ async fn main() {
     } else {
         Some(
             load_material(
-                ShaderSource::Glsl {
-                    vertex: include_str!("./shader/vertex.glsl"),
-                    fragment: include_str!("./shader/damage_frag.glsl"),
-                },
+
+                    include_str!("./shader/vertex.glsl"),
+                    include_str!("./shader/damage_frag.glsl"),
+
                 MaterialParams {
                     pipeline_params: PipelineParams {
                         color_blend: Some(BlendState::new(
@@ -135,6 +132,8 @@ async fn main() {
     let mut texture: Texture2D = Texture2D::from_image(&map.image);
     let mut light_texture: Texture2D = Texture2D::from_image(&map.light_mask);
 
+    let settings = Settings::default();
+
     texture.set_filter(FilterMode::Nearest);
 
     //light_texture.set_filter(FilterMode::Nearest);
@@ -154,10 +153,15 @@ async fn main() {
     // root_ui().push_skin(&skin);
     // root_ui().pop_skin();
     loop {
+
+
+        // Draw things before egui
+
+
         let delta = get_frame_time();
 
         let mut player_damage_taken = player.health;
-        player.update(&map);
+        player.update(&map, &settings);
         player_damage_taken -= player.health;
 
         player_damage_taken /= delta;
@@ -217,7 +221,7 @@ async fn main() {
 
         for e in &map.entities {
             draw_texture_ex(
-                &e.texture,
+                e.texture,
                 e.x,
                 e.y - e.height + 1.0,
                 WHITE,
@@ -228,13 +232,11 @@ async fn main() {
             );
         }
         if let Some(ref world_material) = world_material {
-            if cfg!(not(target_family = "wasm")) {
-                gl_use_material(&world_material);
-                world_material.set_uniform("textureSize", (map.size as f32, map.size as f32));
-            }
+            gl_use_material(*world_material);
+            world_material.set_uniform("textureSize", (map.size as f32, map.size as f32));
         }
         draw_texture_ex(
-            &texture,
+            texture,
             0.0,
             0.0,
             WHITE,
@@ -244,12 +246,12 @@ async fn main() {
         );
         if let Some(ref light_material) = light_material {
             if cfg!(not(target_family = "wasm")) {
-                gl_use_material(&light_material);
+                gl_use_material(*light_material);
                 light_material.set_uniform("textureSize", (map.size as f32, map.size as f32));
             }
         }
         draw_texture_ex(
-            &light_texture,
+            light_texture,
             0.0,
             0.0,
             WHITE,
@@ -262,7 +264,7 @@ async fn main() {
 
         if let Some(ref overlay_material) = overlay_material {
             if cfg!(not(target_family = "wasm")) {
-                gl_use_material(&overlay_material);
+                gl_use_material(*overlay_material);
                 overlay_material.set_uniform("ScreenSize", (screen_width(), screen_height()));
                 overlay_material.set_uniform(
                     "Damage",
@@ -354,6 +356,9 @@ async fn main() {
                 }
             }
         }
+
+        // egui::end_frame();
+        egui_macroquad::draw();
 
         next_frame().await
     }

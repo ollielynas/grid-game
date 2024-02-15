@@ -5,18 +5,11 @@ use savefile_derive::Savefile;
 use std::{default, fmt::Display};
 use strum::IntoEnumIterator;
 
-use macroquad::{
-    camera::Camera2D,
-    color::BLACK,
-    input::{is_key_down, is_mouse_button_down, mouse_position},
-    math::{Rect, Vec2},
-    miniquad::{KeyCode, MouseButton},
-    shapes::draw_line,
-    time::{get_fps, get_frame_time},
-    window::{screen_height, screen_width},
+use egui_macroquad::macroquad::{
+    camera::Camera2D, color::BLACK, input::{is_key_down, is_mouse_button_down, mouse_position}, math::{Rect, Vec2}, miniquad::{KeyCode, MouseButton}, shapes::draw_line, time::{get_fps, get_frame_time}, ui::root_ui, window::{screen_height, screen_width}
 };
 
-use crate::map::Map;
+use crate::{map::Map, settings::{self, Settings}};
 use crate::{craft::craft, entity::Entity, map::Pixel};
 
 #[derive(PartialEq, Debug, Clone)]
@@ -542,9 +535,9 @@ impl Player {
         let scale = 100.0 / screen_width();
         Camera2D::from_display_rect(Rect {
             x: self.x - screen_width() * scale / 2.0,
-            y: self.y + screen_height() * scale / 2.0,
+            y: self.y - screen_height() * scale / 2.0,
             w: screen_width() * scale,
-            h: -screen_height() * scale,
+            h: screen_height() * scale,
         })
     }
 
@@ -680,9 +673,12 @@ impl Player {
         Rect::new(self.x, self.y, 1.95, 2.95)
     }
 
-    pub fn update(&mut self, map: &Map) {
+    pub fn update(&mut self, map: &Map, settings: &Settings) {
         let delta = get_frame_time();
         let mut remaining = delta;
+
+        let move_left_pressed = is_key_down(KeyCode::A) || (settings.mobile && root_ui().button(Vec2::new(0.0,screen_height()-100.0), "<"));
+        let move_right_pressed = is_key_down(KeyCode::D) || (settings.mobile && root_ui().button(Vec2::new(50.0,screen_height()-100.0), ">"));
 
         let mut damage: f32 = 0.0;
 
@@ -799,14 +795,14 @@ impl Player {
             self.vy *= 0.7f32;
         }
 
-        if is_key_down(KeyCode::A) && self.vx > -500.0 {
+        if move_left_pressed && self.vx > -500.0 {
             self.vx -= 8.0;
         }
         // if is_key_down(KeyCode::A) && self.vx > -500.0 && on_ground {
         //     self.vx -= 4.0;
         // }
 
-        if is_key_down(KeyCode::D) && self.vx < 500.0 {
+        if move_right_pressed && self.vx < 500.0 {
             self.vx += 8.0;
         }
         // if is_key_down(KeyCode::D) && self.vx < 500.0 && on_ground {

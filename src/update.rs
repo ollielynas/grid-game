@@ -3,7 +3,7 @@ use crate::{
     player::Player,
 };
 use grid::Grid;
-use macroquad::{
+use egui_macroquad::macroquad::{
     color::{Color, GREEN},
     math::Vec2,
     time::get_fps,

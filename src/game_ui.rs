@@ -1,9 +1,9 @@
 use std::default;
 
 // use egui::util::hash;
-use macroquad::{experimental::animation, math::{vec2, Vec2}, miniquad::Context, time::get_frame_time, ui::{hash, root_ui, widgets::{self, Group, Popup}}, window::{screen_height, screen_width}, Window};
+use egui_macroquad::{egui::{self, Align2}, macroquad::{experimental::animation, math::{vec2, Vec2}, miniquad::Context, time::get_frame_time, ui::{hash, root_ui, widgets::{self, Group, Popup}}, window::{screen_height, screen_width}, Window}};
 use crate::{map::Map, player::{Inventory, Player}};
-use macroquad::prelude::*;
+use egui_macroquad::macroquad::prelude::*;
 
 impl Player {
     pub fn render_ui(&mut self) -> bool {
@@ -23,57 +23,27 @@ impl Player {
         draw_rectangle_lines(vb.x+1.0, vb.y+(self.inventory.animation) * 10.0 -9.0 , self.health* 0.8, 2.0, 0.4,BLACK);
 
         let offset = (1.0-self.inventory.animation) * 100.0;
-
-        if self.inventory.animation != 1.0 {
-            if root_ui().button(None, "main menu") {
-                return true
-            }
-            
-                widgets::Window::new(128, vec2(100., 100.0 ), vec2(screen_width() - 200.0, screen_height() - 200.0))
-                    // .movable(true)
-                    // .close_button(false)
-                    // .titlebar(true)
-                    .ui(&mut *root_ui(), |ui| {
-                        Group::new(9999 as u64+99, Vec2::new(screen_width() - 200.0, 100.)).ui(ui, |ui| {
-                            if ui.button(None, "Holding: ") {
-                                
-                            }
-                            ui.label(None, &format!("{:?}", self.item_in_hand));
-                        });
-                        for (i,item) in self.inventory.items.iter().enumerate() {
-                            Group::new(i as u64+99, Vec2::new(screen_width() - 200.0, 100.)).ui(ui, |ui| {
-                                if ui.button(None, "Equip") {
-                                    equip_item = Some(item.clone());
-                                }
-                                ui.label(None, &format!("{item:?}"));
-                            });
-                        }
-                    });
-                
-            // egui_macroquad::ui(|egui_ctx| {
-            //     egui::Window::new("egui ❤ macroquad")
-
-            //         .show(egui_ctx, |ui| {
-            //             ui.label("Test");
-            //         });
-            // });
-
-            // Draw things before egui
-    
-            // egui_macroquad::draw();
-        } else {
         
-        //     if root_ui()..button(None, format!("Holding: {}", self.item_in_hand)) {
-                                
-        //     }
-        // for (i,item) in self.inventory.items.iter().enumerate() {
-        //     if i < 5 {
-        //         if root_ui().button(None, format!("{item}")) {
-        //             equip_item = Some(item.clone());
-        //         }
-        //     }
-        // }
-        }
+        egui_macroquad::ui(|egui_ctx| {
+            
+            
+            
+            if self.inventory.animation != 1.0 {
+                egui::Window::new("Inventory")
+                .anchor(Align2::CENTER_CENTER, [0.0,0.0])
+                .show(egui_ctx, |ui| {
+                    ui.label("Test");
+                });
+            } else {
+                egui::Area::new("settings")
+                
+                .show(egui_ctx, |ui| {
+                    if ui.button("Inventory").clicked() {
+                        self.inventory.open = true;
+                    }
+                });
+            }
+        });
 
         // equip_item = Some(item.clone());
 

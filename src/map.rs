@@ -3,7 +3,7 @@
 use std::collections::HashSet;
 
 use grid::*;
-use macroquad::{
+use egui_macroquad::macroquad::{
     color::{Color, WHITE}, math::Rect, texture::Image
 };
 use savefile_derive::{Savefile, SavefileNoIntrospect};
