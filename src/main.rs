@@ -1,26 +1,30 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-
-
 mod entity;
 mod game_ui;
 mod map;
 mod player;
-mod skin_style;
+mod settings;
 mod update;
+mod egui_style;
+
+use egui_macroquad::{egui::{self, epaint::text::cursor, FontData, FontDefinitions, FontFamily}, macroquad::{self, miniquad::Pipeline, prelude::*}};
+use egui_style::robot_style;
 // mod profiling;
 mod craft;
 use crate::craft::craft;
 
 use game_ui::home;
 use savefile::prelude::*;
+use settings::Settings;
 
 // use console_error_panic_hook;
-use std::panic;
+use std::{collections::HashSet, panic};
 
-
-use macroquad::{
-    miniquad::{BlendFactor, BlendState, BlendValue, Equation}, prelude::*, ui::{root_ui, Skin, Style}
+use egui_macroquad::macroquad::{
+    miniquad::{BlendFactor, BlendState, BlendValue, Equation},
+    prelude::*,
+    ui::{root_ui, Skin, Style},
 };
 use map::{Map, Pixel};
 use player::{Item, Player};
@@ -42,104 +46,149 @@ fn window_conf() -> Conf {
 async fn main() {
     // console_error_panic_hook::set_once();
 
-    let skins = skin_style::get_skins();
-    
-    root_ui().push_skin(&skins[1]);
-    
-        let light_material = if cfg!(target_family = "wasm") {None} else {Some(load_material(
-                ShaderSource::Glsl { 
-                        vertex: include_str!("./shader/vertex.glsl"), 
-                        fragment: include_str!("./shader/light_frag.glsl")
-                    },
-                    MaterialParams { 
-                            pipeline_params: PipelineParams {
-                                    color_blend: Some(BlendState::new(
-                                            Equation::Add,
-                                            BlendFactor::Value(BlendValue::SourceAlpha),
-                    BlendFactor::OneMinusValue(BlendValue::SourceAlpha))
-                ),
-                ..Default::default()
-            },
-            uniforms: vec![("textureSize".to_owned(), UniformType::Float2), ("canvasSize".to_owned(), UniformType::Float2)], 
-            ..Default::default() 
-        }
-    ).unwrap())};
-    let world_material = if cfg!(target_family = "wasm") {None} else {Some(load_material(
-            ShaderSource::Glsl { 
-            vertex: include_str!("./shader/vertex.glsl"), 
-            fragment: include_str!("./shader/world_frag.glsl")
-        },
-        MaterialParams { 
-                pipeline_params: PipelineParams {
-                        color_blend: Some(BlendState::new(
-                                Equation::Add,
-                                BlendFactor::Value(BlendValue::SourceAlpha),
-                                BlendFactor::OneMinusValue(BlendValue::SourceAlpha))
-                            ),
-                            ..Default::default()
-                        },
-            uniforms: vec![("textureSize".to_owned(), UniformType::Float2), ("canvasSize".to_owned(), UniformType::Float2)], 
-            ..Default::default() 
-        }
-    ).unwrap())};
-    let overlay_material = if cfg!(target_family = "wasm") {None} else {Some(load_material(
-            ShaderSource::Glsl { 
-                    vertex: include_str!("./shader/vertex.glsl"), 
-                    fragment: include_str!("./shader/damage_frag.glsl")
-                },
+
+    let light_material = if cfg!(target_family = "wasm") {
+        None
+    } else {
+        Some(
+            load_material(
+                include_str!("./shader/vertex.glsl"),
+                include_str!("./shader/light_frag.glsl"),
                 MaterialParams {
-                        pipeline_params: PipelineParams {
-                                color_blend: Some(BlendState::new(
-                                        Equation::Add,
-                                        BlendFactor::Value(BlendValue::SourceAlpha),
-                                        BlendFactor::OneMinusValue(BlendValue::SourceAlpha))
-                                    ),
-                                    ..Default::default()
-                                },
-                                uniforms: vec![("ScreenSize".to_owned(), UniformType::Float2), ("Damage".to_owned(), UniformType::Float1)], 
-                                ..Default::default() 
-                            }
-                        ).unwrap())};
-                        
-                    
-                        
-                        
-                        let (mut map, mut player) = home().await;
-                        
-                        
-                        
-                        let mut texture: Texture2D = Texture2D::from_image(&map.image);
-                        let mut light_texture: Texture2D = Texture2D::from_image(&map.light_mask);
-                        
-                        texture.set_filter(FilterMode::Nearest);
-                        
-                        //light_texture.set_filter(FilterMode::Nearest);
-                        
-                        // map.make_square(map::Pixel::Water);
-                        // map.make_log();
-                        
-                        
-                        
-                        let paused = false;
-                        show_mouse(false);
-                        
-                        // let texture_heatmap: Texture2D = Texture2D::from_image(&map.heatmap);
-                        
-                        let mut hover: Option<Pixel>;
-                        
-                        let mut average_damage = vec![0.0, 0.0, 0.0];
+                    pipeline_params: PipelineParams {
+                        color_blend: Some(BlendState::new(
+                            Equation::Add,
+                            BlendFactor::Value(BlendValue::SourceAlpha),
+                            BlendFactor::OneMinusValue(BlendValue::SourceAlpha),
+                        )),
+                        ..Default::default()
+                    },
+                    uniforms: vec![
+                        ("textureSize".to_owned(), UniformType::Float2),
+                        ("canvasSize".to_owned(), UniformType::Float2),
+                    ],
+                    ..Default::default()
+                },
+            )
+            .unwrap(),
+        )
+    };
+    let world_material = if cfg!(target_family = "wasm") {
+        None
+    } else {
+        Some(
+            load_material(
+
+                    include_str!("./shader/vertex.glsl"),
+                    include_str!("./shader/world_frag.glsl"),
+                
+                MaterialParams {
+                    pipeline_params: PipelineParams {
+                        color_blend: Some(BlendState::new(
+                            Equation::Add,
+                            BlendFactor::Value(BlendValue::SourceAlpha),
+                            BlendFactor::OneMinusValue(BlendValue::SourceAlpha),
+                        )),
+                        ..Default::default()
+                    },
+                    uniforms: vec![
+                        ("textureSize".to_owned(), UniformType::Float2),
+                        ("canvasSize".to_owned(), UniformType::Float2),
+                    ],
+                    ..Default::default()
+                },
+            )
+            .unwrap(),
+        )
+    };
+    let overlay_material = if cfg!(target_family = "wasm") {
+        None
+    } else {
+        Some(
+            load_material(
+
+                    include_str!("./shader/vertex.glsl"),
+                    include_str!("./shader/damage_frag.glsl"),
+
+                MaterialParams {
+                    pipeline_params: PipelineParams {
+                        color_blend: Some(BlendState::new(
+                            Equation::Add,
+                            BlendFactor::Value(BlendValue::SourceAlpha),
+                            BlendFactor::OneMinusValue(BlendValue::SourceAlpha),
+                        )),
+                        ..Default::default()
+                    },
+                    uniforms: vec![
+                        ("ScreenSize".to_owned(), UniformType::Float2),
+                        ("Damage".to_owned(), UniformType::Float1),
+                    ],
+                    ..Default::default()
+                },
+            )
+            .unwrap(),
+        )
+    };
+
+    let (mut map, mut player) = home().await;
+
+    let mut texture: Texture2D = Texture2D::from_image(&map.image);
+    let mut light_texture: Texture2D = Texture2D::from_image(&map.light_mask);
+
+    let settings = Settings::default();
+
+    texture.set_filter(FilterMode::Nearest);
+
+    //light_texture.set_filter(FilterMode::Nearest);
+
+    // map.make_square(map::Pixel::Water);
+    // map.make_log();
+
+    let paused = false;
+    show_mouse(false);
+
+    // let texture_heatmap: Texture2D = Texture2D::from_image(&map.heatmap);
+
+    let mut hover: Option<Pixel>;
+
+    let mut average_damage = vec![0.0, 0.0, 0.0];
 
     // root_ui().push_skin(&skin);
     // root_ui().pop_skin();
+
+    egui_macroquad::ui(|egui_ctx| {
+        egui_ctx.set_style(robot_style());
+        let mut fonts = FontDefinitions::default();
+
+// Install my own font (maybe supporting non-latin characters):
+fonts.font_data.insert("my_font".to_owned(),
+   FontData::from_static(include_bytes!("./font/FSEX300.ttf"))); // .ttf and .otf supported
+
+// Put my font first (highest priority):
+fonts.families.get_mut(&FontFamily::Proportional).unwrap()
+    .insert(0, "my_font".to_owned());
+
+// Put my font as last fallback for monospace:
+fonts.families.get_mut(&FontFamily::Monospace).unwrap()
+    .push("my_font".to_owned());
+
+egui_ctx.set_fonts(fonts);
+    });
+
+
     loop {
+
+
+        // Draw things before egui
+
 
         let delta = get_frame_time();
 
         let mut player_damage_taken = player.health;
-        player.update(&map);
+        player.update(&map, &settings);
         player_damage_taken -= player.health;
 
-        player_damage_taken/=delta;
+        player_damage_taken /= delta;
 
         average_damage.pop();
         average_damage.insert(0, player_damage_taken);
@@ -148,7 +197,7 @@ async fn main() {
         // clear_background(Color { r: 0.8, g: 0.8, b: 0.8, a: 1.0 });
         clear_background(WHITE);
 
-
+    
         if !paused {
             map.update_state(&player);
             map.entities.retain_mut(|x| x.update(&(map.grid)));
@@ -159,9 +208,8 @@ async fn main() {
         match get_char_pressed() {
             Some('i') => {
                 player.inventory.open = !player.inventory.open;
-                show_mouse(player.inventory.open);
             }
-            
+
             _ => {}
         }
         let mouse = mouse_position();
@@ -174,23 +222,30 @@ async fn main() {
         let mouse_row = (pt.y as usize).clamp(2, map.size as usize - 2);
         let mouse_col = (pt.x as usize).clamp(2, map.size as usize - 2);
         hover = Some(map.grid[(mouse_row, mouse_col)]);
-        if is_mouse_button_down(MouseButton::Left) && distance < 25.0 && !player.inventory.open {
-            map.update_texture_px.push((mouse_row, mouse_col));
 
-            player.use_item(&mut map, mouse_row, mouse_col)
+        if (((is_mouse_button_pressed(MouseButton::Left)
+            || is_mouse_button_released(MouseButton::Left))
+            && matches!(player.item_in_hand, Item::Crafter { start }))
+            || (is_mouse_button_down(MouseButton::Left)
+                && !matches!(player.item_in_hand, Item::Crafter { start })))
+            && distance < 25.0
+            && !player.hover_ui
+        {
+            map.update_texture_px.insert((mouse_row, mouse_col));
+            player.use_item(&mut map, mouse_row, mouse_col);
         }
 
         if !map.update_texture_px.is_empty() {
             map.update_image();
             texture.update(&map.image);
-            map.update_texture_px = vec![];
+            map.update_texture_px = HashSet::new();
         }
 
         draw_rectangle(player.x, player.y, 2.0, 3.0, ORANGE);
 
         for e in &map.entities {
             draw_texture_ex(
-                &e.texture,
+                e.texture,
                 e.x,
                 e.y - e.height + 1.0,
                 WHITE,
@@ -201,13 +256,11 @@ async fn main() {
             );
         }
         if let Some(ref world_material) = world_material {
-        if cfg!(not(target_family = "wasm")) {
-        gl_use_material(&world_material);
-        world_material.set_uniform("textureSize", (map.size as f32, map.size as f32));
+            gl_use_material(*world_material);
+            world_material.set_uniform("textureSize", (map.size as f32, map.size as f32));
         }
-         }
         draw_texture_ex(
-            &texture,
+            texture,
             0.0,
             0.0,
             WHITE,
@@ -217,11 +270,12 @@ async fn main() {
         );
         if let Some(ref light_material) = light_material {
             if cfg!(not(target_family = "wasm")) {
-                gl_use_material(&light_material);
+                gl_use_material(*light_material);
                 light_material.set_uniform("textureSize", (map.size as f32, map.size as f32));
-            }}
+            }
+        }
         draw_texture_ex(
-            &light_texture,
+            light_texture,
             0.0,
             0.0,
             WHITE,
@@ -230,33 +284,34 @@ async fn main() {
             },
         );
 
-
         let v_port = player.view_port_cache;
-        
+
         if let Some(ref overlay_material) = overlay_material {
             if cfg!(not(target_family = "wasm")) {
-                gl_use_material(&overlay_material);
-        overlay_material.set_uniform("ScreenSize", (screen_width(), screen_height()));
-        overlay_material.set_uniform("Damage", average_damage.iter().sum::<f32>()/average_damage.len() as f32);
-        draw_rectangle(v_port.x, v_port.y, v_port.w, v_port.h, WHITE);
-            }}
+                gl_use_material(*overlay_material);
+                overlay_material.set_uniform("ScreenSize", (screen_width(), screen_height()));
+                overlay_material.set_uniform(
+                    "Damage",
+                    average_damage.iter().sum::<f32>() / average_damage.len() as f32,
+                );
+                draw_rectangle(v_port.x, v_port.y, v_port.w, v_port.h, WHITE);
+            }
+        }
 
-        
         
 
         gl_use_default_material();
 
-        
         let hit = player.make_map_box(&map, player.view_port_cache, false);
         //let hit = player.make_map_box(&map, Rect::new(player.x - 20.0, player.y - 20.0, 40.0, 40.0), true);
         hit.render();
 
         if player.render_ui() {
             (map, player) = home().await;
-            
-        texture = Texture2D::from_image(&map.image);
-        light_texture = Texture2D::from_image(&map.light_mask);
-        texture.set_filter(FilterMode::Nearest);
+
+            texture = Texture2D::from_image(&map.image);
+            light_texture = Texture2D::from_image(&map.light_mask);
+            texture.set_filter(FilterMode::Nearest);
             continue;
         };
 
@@ -264,26 +319,47 @@ async fn main() {
 
         // crafting
 
-        let wand_rect = player.craft_rect(map.size.clone() as usize).unwrap_or_default();
-            let craft_result = craft(map.get_region(wand_rect));
+        let wand_rect = player
+            .craft_rect(map.size.clone() as usize)
+            .unwrap_or_default();
+        let craft_result = craft(map.get_region(wand_rect));
 
         if let Some(wand_rect) = player.craft_rect(map.size as usize) {
+            draw_rectangle_lines(
+                wand_rect.x,
+                wand_rect.y,
+                wand_rect.w,
+                wand_rect.h,
+                0.8,
+                Color { r: 0.6, g: 0.7, b: 1.0, a: 0.8 },
+            );
             if distance >= 25.0 {
                 draw_rectangle_lines(wand_rect.x, wand_rect.y, wand_rect.w, wand_rect.h, 0.3, RED);
             } else if craft_result.0 {
-                draw_rectangle_lines(wand_rect.x, wand_rect.y, wand_rect.w, wand_rect.h, 0.3, GREEN);
+                draw_rectangle_lines(
+                    wand_rect.x,
+                    wand_rect.y,
+                    wand_rect.w,
+                    wand_rect.h,
+                    0.3,
+                    GREEN,
+                );
             } else {
-                draw_rectangle_lines(wand_rect.x, wand_rect.y, wand_rect.w, wand_rect.h, 0.3, GRAY);
+                draw_rectangle_lines(
+                    wand_rect.x,
+                    wand_rect.y,
+                    wand_rect.w,
+                    wand_rect.h,
+                    0.3,
+                    WHITE,
+                );
             }
         }
 
-        root_ui().label(None, " ");
-        root_ui().label(None, " ");
-        root_ui().label(None, &format!("  fps: {}", get_fps()));
-        // root_ui().label(None, &format!("HP: {}", player.health));
-        if hover != Some(Pixel::Air) {
-            root_ui().label(None, &format!("{:?}", hover));
-        }
+        
+        // if hover != Some(Pixel::Air) {
+        //     root_ui().label(None, &format!("{:?}", hover));
+        // }
 
         if distance >= 25.0 {
             draw_circle(pt.x, pt.y, 0.5, LIGHTGRAY);
@@ -299,7 +375,6 @@ async fn main() {
                         &format!("{count}"),
                         pt.x.ceil(),
                         pt.y.ceil(),
-                        
                         TextParams {
                             font_size: 20,
                             font_scale: 0.1,
@@ -314,7 +389,10 @@ async fn main() {
             }
         }
 
+        // get_internal_gl().quad_context.apply_pipeline(&Pipeline::new(ctx, buffer_layout, attributes, shader));
+        // egui::end_frame();
+        egui_macroquad::draw();
+
         next_frame().await
     }
 }
-

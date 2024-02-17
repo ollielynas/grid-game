@@ -5,18 +5,11 @@ use savefile_derive::Savefile;
 use std::{default, fmt::Display};
 use strum::IntoEnumIterator;
 
-use macroquad::{
-    camera::Camera2D,
-    color::BLACK,
-    input::{is_key_down, is_mouse_button_down, mouse_position},
-    math::{Rect, Vec2},
-    miniquad::{KeyCode, MouseButton},
-    shapes::draw_line,
-    time::{get_fps, get_frame_time},
-    window::{screen_height, screen_width},
+use egui_macroquad::macroquad::{
+    camera::Camera2D, color::BLACK, input::{is_key_down, is_mouse_button_down, mouse_position}, math::{Rect, Vec2}, miniquad::{KeyCode, MouseButton}, shapes::draw_line, time::{get_fps, get_frame_time}, ui::root_ui, window::{screen_height, screen_width}
 };
 
-use crate::map::Map;
+use crate::{map::Map, settings::{self, Settings}};
 use crate::{craft::craft, entity::Entity, map::Pixel};
 
 #[derive(PartialEq, Debug, Clone)]
@@ -68,6 +61,7 @@ impl Display for Item {
                     Pixel::Seed => "Seed",
                     Pixel::Leaf => "Leaf",
                     Pixel::Loot => "Loot Box",
+                    Pixel::Lamp => "Lamp",
                 },
                 count
             ),
@@ -123,6 +117,9 @@ pub struct Player {
     jump_height_timer: f32,
     craft_timer: f32,
     pub view_port_cache: Rect,
+    pub hover_ui: bool,
+    pub battery: f32,
+    pub charging: bool,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -350,7 +347,10 @@ impl Default for Player {
             respawn_pos: Vec2 { x: 50.0, y: 50.0 },
             jump_height_timer: 0.0,
             craft_timer: 0.0,
+            hover_ui: true,
             view_port_cache: Rect::default(),
+            battery: 100.0,
+            charging: false,
         }
     }
 }
@@ -478,7 +478,7 @@ impl Player {
                 for ((row, col), i) in result.1.indexed_iter() {
                     let px = (row + wand_rect.y as usize, col + wand_rect.x as usize);
                     map.grid[px] = *i;
-                    map.update_texture_px.push(px);
+                    map.update_texture_px.insert(px);
                 }
             }
         }
@@ -541,9 +541,9 @@ impl Player {
         let scale = 100.0 / screen_width();
         Camera2D::from_display_rect(Rect {
             x: self.x - screen_width() * scale / 2.0,
-            y: self.y + screen_height() * scale / 2.0,
+            y: self.y - screen_height() * scale / 2.0,
             w: screen_width() * scale,
-            h: -screen_height() * scale,
+            h: screen_height() * scale,
         })
     }
 
@@ -660,6 +660,7 @@ impl Player {
         self.health = 20.0;
         self.x = self.respawn_pos.x;
         self.y = self.respawn_pos.y;
+        self.battery = 100.0;
     }
 
     pub fn get_player_box(&self, offset_x: f32, offset_y: f32) -> HitLineSet {
@@ -679,7 +680,7 @@ impl Player {
         Rect::new(self.x, self.y, 1.95, 2.95)
     }
 
-    pub fn update(&mut self, map: &Map) {
+    pub fn update(&mut self, map: &Map, settings: &Settings) {
         let delta = if is_key_down(KeyCode::K) {
             get_frame_time() * 10.0
         } else {
@@ -687,6 +688,10 @@ impl Player {
         };
 
         let mut remaining = delta;
+
+        let move_left_pressed = is_key_down(KeyCode::A) || (settings.mobile && root_ui().button(Vec2::new(0.0,screen_height()-100.0), "<"));
+        let move_right_pressed = is_key_down(KeyCode::D) || (settings.mobile && root_ui().button(Vec2::new(50.0,screen_height()-100.0), ">"));
+        let jump_pressed = is_key_down(KeyCode::Space) || (settings.mobile && root_ui().button(Vec2::new(50.0,screen_height()-100.0), "^"));
 
         let mut damage: f32 = 0.0;
 
@@ -778,6 +783,13 @@ impl Player {
             max_falling_speed * delta * 12.0
         };
 
+        if map.sky_light[self.x as usize] >= self.y as usize || map.sky_light[self.x as usize + 1] >= self.y as usize {
+            self.battery += delta;
+            self.charging = true;
+        }else {
+            self.charging = false;
+        }
+
         self.jump_height_timer -= delta;
         self.jump_height_timer = self.jump_height_timer.clamp(0.0, 1.0);
         self.craft_timer -= delta;
@@ -788,9 +800,12 @@ impl Player {
             self.jump_height_timer = 0.2;
         }
 
-        if is_key_down(KeyCode::Space) && self.vy > -200.0 && self.jump_height_timer > 0.0 {
+        if jump_pressed && self.vy > -200.0 && self.jump_height_timer > 0.0 {
             self.vy -= 500.0 * delta;
         }
+        self.battery -= delta * 0.1;
+
+        self.battery =self.battery.clamp(0.0, 100.0);
 
         self.vx *= 0.75_f32;
 
@@ -803,14 +818,14 @@ impl Player {
             self.vy *= 0.7f32;
         }
 
-        if is_key_down(KeyCode::A) && self.vx > -500.0 {
+        if move_left_pressed && self.vx > -500.0 {
             self.vx -= 8.0;
         }
         // if is_key_down(KeyCode::A) && self.vx > -500.0 && on_ground {
         //     self.vx -= 4.0;
         // }
 
-        if is_key_down(KeyCode::D) && self.vx < 500.0 {
+        if move_right_pressed && self.vx < 500.0 {
             self.vx += 8.0;
         }
         // if is_key_down(KeyCode::D) && self.vx < 500.0 && on_ground {

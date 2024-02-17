@@ -1,86 +1,104 @@
-use std::default;
+use std::{default, fmt::format};
 
 // use egui::util::hash;
-use macroquad::{experimental::animation, math::{vec2, Vec2}, miniquad::Context, time::get_frame_time, ui::{hash, root_ui, widgets::{self, Group, Popup}}, window::{screen_height, screen_width}, Window};
-use crate::{map::Map, player::{Inventory, Player}};
-use macroquad::prelude::*;
+use egui_macroquad::{egui::{self, Align2, Id}, macroquad::{experimental::animation, math::{vec2, Vec2}, miniquad::Context, time::get_frame_time, ui::{hash, root_ui, widgets::{self, Group, Popup}}, window::{screen_height, screen_width}, Window}};
+use crate::{map::Map, player::{Inventory, Item, Player}};
+use egui_macroquad::macroquad::prelude::*;
 
 impl Player {
     pub fn render_ui(&mut self) -> bool {
         let delta = get_frame_time();
         // let hand_item = self.item_in_hand;
         let mut equip_item: Option<crate::player::Item> = None;
-        self.inventory.animation -= if self.inventory.open {1.0} else {-1.0} * 4.0 * delta;
-        self.inventory.animation = self.inventory.animation.clamp(0.0, 1.0);
+        self.inventory.animation = (self.inventory.animation + delta) % 10.0;
 
         
         let vb = self.get_view_port();
         
-        draw_rectangle(1.0+vb.x, vb.y+(self.inventory.animation) * 10.0 - 9.0 , 20.0* 0.8, 2.0, GRAY);
-        draw_rectangle_lines(vb.x+1.0, vb.y+(self.inventory.animation) * 10.0 -9.0 , 20.0* 0.8, 2.0, 0.4,BLACK);
+        // draw_rectangle(1.0+vb.x, vb.y + 2.0, 20.0* 0.8, 2.0, GRAY);
+        // draw_rectangle_lines(vb.x+1.0, vb.y + 2.0, 20.0* 0.8, 2.0, 0.4,BLACK);
         
-        draw_rectangle(1.0+vb.x, vb.y+(self.inventory.animation) * 10.0 - 9.0 , self.health* 0.8, 2.0, RED);
-        draw_rectangle_lines(vb.x+1.0, vb.y+(self.inventory.animation) * 10.0 -9.0 , self.health* 0.8, 2.0, 0.4,BLACK);
+        // draw_rectangle(1.0+vb.x, vb.y + 2.0, self.health* 0.8, 2.0, RED);
+        // draw_rectangle_lines(vb.x+1.0, vb.y + 2.0, self.health* 0.8, 2.0, 0.4,BLACK);
 
-        let offset = (1.0-self.inventory.animation) * 100.0;
 
-        if self.inventory.animation != 1.0 {
-            if root_ui().button(None, "main menu") {
-                return true
-            }
+        
+        egui_macroquad::ui(|egui_ctx| {
+            egui::Area::new("info")
             
-                widgets::Window::new(128, vec2(100., 100.0 ), vec2(screen_width() - 200.0, screen_height() - 200.0))
-                    // .movable(true)
-                    // .close_button(false)
-                    // .titlebar(true)
-                    .ui(&mut *root_ui(), |ui| {
-                        Group::new(9999 as u64+99, Vec2::new(screen_width() - 200.0, 100.)).ui(ui, |ui| {
-                            if ui.button(None, "Holding: ") {
-                                
-                            }
-                            ui.label(None, &format!("{:?}", self.item_in_hand));
-                        });
-                        for (i,item) in self.inventory.items.iter().enumerate() {
-                            Group::new(i as u64+99, Vec2::new(screen_width() - 200.0, 100.)).ui(ui, |ui| {
-                                if ui.button(None, "Equip") {
-                                    equip_item = Some(item.clone());
-                                }
-                                ui.label(None, &format!("{item:?}"));
-                            });
-                        }
-                    });
+            .anchor(Align2::LEFT_TOP, [0.0,0.0])
+            .show(egui_ctx, |ui| {
+                ui.horizontal(|ui|{
+                ui.label(&format!("INTEGRITY: {}%", self.health/2.0 * 10.0));
+                if self.inventory.animation % 1.0 > 0.5 && self.health < 5.0{
+                    ui.label("WARNING! LOW INTEGRITY");
+                }
+                });
+                ui.horizontal(|ui|{
+                ui.label(&format!("Battery: {}%", self.battery.round()));
+                if self.inventory.animation % 1.0 > 0.5 && self.battery < 25.0 {
+                    ui.label("WARNING! LOW BATTERY");
+                }else if self.charging {
+                    ui.label("*");
+                }
+                });
+                self.hover_ui = egui_ctx.is_pointer_over_area();
+            });
+            egui::Window::new("")
+            .id(Id::new("bottom info"))
+            .anchor(Align2::LEFT_BOTTOM, [0.0,0.0])
+            .show(egui_ctx, |ui| {
+                ui.label(&format!("FPS: {}", get_fps()));
+                ui.label(&format!("X / Y: {} {}", self.x, self.y));
                 
-            // egui_macroquad::ui(|egui_ctx| {
-            //     egui::Window::new("egui ❤ macroquad")
+                self.hover_ui = egui_ctx.is_pointer_over_area();
+            });
+            
+            egui::Window::new("")
+            .id(Id::new("option"))
+            .anchor(Align2::LEFT_CENTER, [10.0,0.0])
+            .show(egui_ctx, |ui| {
+                ui.label(format!("CURRENTLY HOLDING: {}", self.item_in_hand));
+                ui.label("");
 
-            //         .show(egui_ctx, |ui| {
-            //             ui.label("Test");
-            //         });
-            // });
+                if ui.button(" > Craft".to_owned() + if matches!(self.item_in_hand, Item::Crafter { start: _ }) {"*"} else {""}).clicked() {
+                    equip_item = Some(Item::Crafter { start: None })
+                }
+                if ui.button(" > Mine".to_owned() + if matches!(self.item_in_hand, Item::Pickaxe) {"*"} else {""}).clicked() {
+                    equip_item = Some(Item::Pickaxe)
+                }
+                    if ui.button(" > Place".to_owned() + if matches!(self.item_in_hand, Item::PlacePixel { pixel: _, count:_ }) {"*"} else {""}).clicked() {
+                        equip_item = Some(self.inventory.items.get(0).unwrap_or(&Item::Hand).clone());
+                    }
 
-            // Draw things before egui
-    
-            // egui_macroquad::draw();
-        } else {
-        
-        //     if root_ui()..button(None, format!("Holding: {}", self.item_in_hand)) {
-                                
-        //     }
-        // for (i,item) in self.inventory.items.iter().enumerate() {
-        //     if i < 5 {
-        //         if root_ui().button(None, format!("{item}")) {
-        //             equip_item = Some(item.clone());
-        //         }
-        //     }
-        // }
-        }
+                if matches!(self.item_in_hand, Item::PlacePixel { pixel: _, count:_ }) && ui.button("  > Select Item").clicked() {
+                    self.inventory.open = !self.inventory.open;
+                }
+            });
+            
+                egui::Window::new("Inventory")
+                .vscroll(true)
+                .anchor(Align2::RIGHT_TOP, [0.0,0.0])
+                .open(&mut self.inventory.open)
+            
+                .show(egui_ctx, |ui| {
+                    for item in &self.inventory.items {
+                        if matches!(item, Item::PlacePixel { pixel: _, count: _ }) 
+                        && ui.button(&format!("> {item}")).clicked() {
+                            equip_item = Some(item.clone());
+                        
+                    }
+                    }
+                });
+            
+        });
 
         // equip_item = Some(item.clone());
 
         if let Some(item) =  equip_item {
             self.gain_item(self.item_in_hand.clone());
             self.item_in_hand = item;
-            self.inventory.items.retain(|x| x != &self.item_in_hand);
+            self.inventory.items.retain(|x| x != &self.item_in_hand && matches!(x, Item::PlacePixel { pixel: _, count: _ }));
         }
 
         return false
@@ -165,7 +183,7 @@ pub async fn home() -> (Map, Player) {
 
                 final_player.respawn_pos = respawn_point;
                 for ((row, col),_) in final_map.grid.indexed_iter() {
-                    final_map.update_texture_px.push((row, col))
+                    final_map.update_texture_px.insert((row, col));
                 }
                 final_map.update_image();
                 return (final_map, final_player);
@@ -210,20 +228,29 @@ pub async fn player_gen() -> Player {
 
 pub async fn map_gen() -> Map {
 
-    let mut map_size = 500.0;
+    let mut map_size: i32 = 500;
+    let mut map_size_string: String = "500".to_owned();
     let mut seed = fastrand::i32(1000000000..2147483647).to_string();
     let mut name = "Map Name Here".to_owned();
     let mut map: Map;
     let mut blank = false;
+    let mut realistic_fluid = true;
     loop {
         clear_background(WHITE);
 
         root_ui().label(None, "New World");
-        root_ui().slider(0, "World Size", 101.0..5000.0, &mut map_size);
+
         root_ui().input_text(2, "Name", &mut name);
         root_ui().input_text(3, "Seed", &mut seed);
-
+        root_ui().input_text(0, "World Size", &mut map_size_string);
+        if let Ok(num) = map_size_string.parse::<i32>() {
+            map_size = num;
+        }else {
+            root_ui().label(None, "invalid world size");
+        }
+        
         root_ui().checkbox(432, "Blank World", &mut blank);
+        root_ui().checkbox(432, "Realistic Fluid", &mut realistic_fluid);
 
         if root_ui().button(None, "Create") {
             fastrand::seed(hash!(seed.clone()));
@@ -231,6 +258,7 @@ pub async fn map_gen() -> Map {
             if !blank {
                 map.gen_terrain();
             }
+            map.realistic_fluid = realistic_fluid;
             return map;
         }
 

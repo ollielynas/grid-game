@@ -2,7 +2,7 @@
 use std::clone;
 
 use grid::Grid;
-use macroquad::{miniquad::FilterMode, texture::Texture2D, time::get_frame_time};
+use egui_macroquad::macroquad::{miniquad::FilterMode, texture::Texture2D, time::get_frame_time};
 use savefile_derive::Savefile;
 
 use crate::map::Pixel;
