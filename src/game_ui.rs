@@ -1,7 +1,7 @@
 use std::{default, fmt::format};
 
 // use egui::util::hash;
-use egui_macroquad::{egui::{self, Align2, Id}, macroquad::{experimental::animation, math::{vec2, Vec2}, miniquad::Context, time::get_frame_time, ui::{hash, root_ui, widgets::{self, Group, Popup}}, window::{screen_height, screen_width}, Window}};
+use egui_macroquad::{egui::{self, Align2, Color32, Id, RichText}, macroquad::{experimental::animation, math::{vec2, Vec2}, miniquad::Context, time::get_frame_time, ui::{hash, root_ui, widgets::{self, Group, Popup}}, window::{screen_height, screen_width}, Window}};
 use crate::{map::Map, player::{Inventory, Item, Player}};
 use egui_macroquad::macroquad::prelude::*;
 
@@ -11,7 +11,7 @@ impl Player {
         // let hand_item = self.item_in_hand;
         let mut equip_item: Option<crate::player::Item> = None;
         self.inventory.animation = (self.inventory.animation + delta) % 10.0;
-
+        let mut return_value = false;
         
         let vb = self.get_view_port();
         
@@ -26,7 +26,7 @@ impl Player {
         egui_macroquad::ui(|egui_ctx| {
             egui::Area::new("info")
             
-            .anchor(Align2::LEFT_TOP, [0.0,0.0])
+            .anchor(Align2::LEFT_TOP, [5.0,5.0])
             .show(egui_ctx, |ui| {
                 ui.horizontal(|ui|{
                 ui.label(&format!("INTEGRITY: {}%", self.health/2.0 * 10.0));
@@ -51,6 +51,27 @@ impl Player {
                 ui.label(&format!("FPS: {}", get_fps()));
                 ui.label(&format!("X / Y: {} {}", self.x, self.y));
                 
+                self.hover_ui = egui_ctx.is_pointer_over_area();
+            });
+            egui::Window::new("")
+            
+            .id(Id::new("bottom center buttons"))
+            .anchor(Align2::CENTER_BOTTOM, [0.0,0.0])
+            .show(egui_ctx, |ui| {
+                if ui.button("LEAVE MISION").clicked() {
+                    return_value = true;
+                }
+                if ui.button(RichText::new("SELF DESTRUCT").color(Color32::RED)).clicked() {
+                    self.health = -0.1;
+                }
+                self.hover_ui = egui_ctx.is_pointer_over_area();
+            });
+            egui::Area::new("")
+            .id(Id::new("LIVE"))
+            .anchor(Align2::CENTER_TOP, [0.0,5.0])
+            .show(egui_ctx, |ui| {
+                ui.colored_label(Color32::from_rgb(255, 0, 0), "* LIVE");
+
                 self.hover_ui = egui_ctx.is_pointer_over_area();
             });
             
@@ -101,7 +122,7 @@ impl Player {
             self.inventory.items.retain(|x| x != &self.item_in_hand && matches!(x, Item::PlacePixel { pixel: _, count: _ }));
         }
 
-        return false
+        return return_value;
 
     
 }
