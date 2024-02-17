@@ -248,6 +248,7 @@ async fn main() {
 
         
         let hit = player.make_map_box(&map, player.view_port_cache, false);
+        //let hit = player.make_map_box(&map, Rect::new(player.x - 20.0, player.y - 20.0, 40.0, 40.0), true);
         hit.render();
 
         if player.render_ui() {

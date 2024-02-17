@@ -164,7 +164,7 @@ impl VerticalLine {
     }
 
     pub fn get_collision_with(&self, other: &VerticalLine, v: Vec2) -> Option<Collision> {
-        if v.x.abs() < 0.0001 {
+        if v.x.abs() < 0.0000000000001 {
             return None;
         }
 
@@ -231,7 +231,7 @@ impl HorizontalLine {
     }
 
     pub fn get_collision_with(&self, other: &HorizontalLine, v: Vec2) -> Option<Collision> {
-        if v.y.abs() < 0.0001 {
+        if v.y.abs() < 0.0000000001 {
             return None;
         }
 
@@ -680,7 +680,12 @@ impl Player {
     }
 
     pub fn update(&mut self, map: &Map) {
-        let delta = get_frame_time();
+        let delta = if is_key_down(KeyCode::K) {
+            get_frame_time() * 10.0
+        } else {
+            get_frame_time()
+        };
+
         let mut remaining = delta;
 
         let mut damage: f32 = 0.0;
