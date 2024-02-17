@@ -117,6 +117,7 @@ pub struct Player {
     jump_height_timer: f32,
     craft_timer: f32,
     pub view_port_cache: Rect,
+    pub hover_ui: bool,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -344,6 +345,7 @@ impl Default for Player {
             respawn_pos: Vec2 { x: 50.0, y: 50.0 },
             jump_height_timer: 0.0,
             craft_timer: 0.0,
+            hover_ui: true,
             view_port_cache: Rect::default(),
         }
     }

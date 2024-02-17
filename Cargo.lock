@@ -404,6 +404,7 @@ dependencies = [
  "grid",
  "lazy_static",
  "perlin2d",
+ "quad-url",
  "rayon",
  "savefile",
  "savefile-derive",

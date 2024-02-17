@@ -22,6 +22,7 @@ strum_macros = "0.26.1"
 rayon = "1.8.1"
 console_error_panic_hook = "0.1.7"
 egui-macroquad = "0.15.0"
+quad-url = "0.1.1"
 # egui = "0.26.2"
 
 

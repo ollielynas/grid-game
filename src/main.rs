@@ -6,8 +6,10 @@ mod map;
 mod player;
 mod settings;
 mod update;
+mod egui_style;
 
-use egui_macroquad::{egui, macroquad::{self, prelude::*}};
+use egui_macroquad::{egui::{self, epaint::text::cursor, FontData, FontDefinitions, FontFamily}, macroquad::{self, prelude::*}};
+use egui_style::robot_style;
 // mod profiling;
 mod craft;
 use crate::craft::craft;
@@ -43,6 +45,7 @@ fn window_conf() -> Conf {
 #[macroquad::main(window_conf)]
 async fn main() {
     // console_error_panic_hook::set_once();
+
 
     let light_material = if cfg!(target_family = "wasm") {
         None
@@ -152,6 +155,27 @@ async fn main() {
 
     // root_ui().push_skin(&skin);
     // root_ui().pop_skin();
+
+    egui_macroquad::ui(|egui_ctx| {
+        egui_ctx.set_style(robot_style());
+        let mut fonts = FontDefinitions::default();
+
+// Install my own font (maybe supporting non-latin characters):
+fonts.font_data.insert("my_font".to_owned(),
+   FontData::from_static(include_bytes!("./font/FSEX300.ttf"))); // .ttf and .otf supported
+
+// Put my font first (highest priority):
+fonts.families.get_mut(&FontFamily::Proportional).unwrap()
+    .insert(0, "my_font".to_owned());
+
+// Put my font as last fallback for monospace:
+fonts.families.get_mut(&FontFamily::Monospace).unwrap()
+    .push("my_font".to_owned());
+
+egui_ctx.set_fonts(fonts);
+    });
+
+
     loop {
 
 
@@ -173,6 +197,7 @@ async fn main() {
         // clear_background(Color { r: 0.8, g: 0.8, b: 0.8, a: 1.0 });
         clear_background(WHITE);
 
+    
         if !paused {
             map.update_state(&player);
             map.entities.retain_mut(|x| x.update(&(map.grid)));
@@ -183,7 +208,6 @@ async fn main() {
         match get_char_pressed() {
             Some('i') => {
                 player.inventory.open = !player.inventory.open;
-                show_mouse(player.inventory.open);
             }
 
             _ => {}
@@ -205,7 +229,7 @@ async fn main() {
             || (is_mouse_button_down(MouseButton::Left)
                 && !matches!(player.item_in_hand, Item::Crafter { start })))
             && distance < 25.0
-            && !player.inventory.open
+            && !player.hover_ui
         {
             map.update_texture_px.insert((mouse_row, mouse_col));
             player.use_item(&mut map, mouse_row, mouse_col);
@@ -298,6 +322,14 @@ async fn main() {
         let craft_result = craft(map.get_region(wand_rect));
 
         if let Some(wand_rect) = player.craft_rect(map.size as usize) {
+            draw_rectangle_lines(
+                wand_rect.x,
+                wand_rect.y,
+                wand_rect.w,
+                wand_rect.h,
+                0.8,
+                Color { r: 0.6, g: 0.7, b: 1.0, a: 0.8 },
+            );
             if distance >= 25.0 {
                 draw_rectangle_lines(wand_rect.x, wand_rect.y, wand_rect.w, wand_rect.h, 0.3, RED);
             } else if craft_result.0 {
@@ -316,7 +348,7 @@ async fn main() {
                     wand_rect.w,
                     wand_rect.h,
                     0.3,
-                    GRAY,
+                    WHITE,
                 );
             }
         }

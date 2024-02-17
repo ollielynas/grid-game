@@ -1,8 +1,8 @@
-use std::default;
+use std::{default, fmt::format};
 
 // use egui::util::hash;
 use egui_macroquad::{egui::{self, Align2}, macroquad::{experimental::animation, math::{vec2, Vec2}, miniquad::Context, time::get_frame_time, ui::{hash, root_ui, widgets::{self, Group, Popup}}, window::{screen_height, screen_width}, Window}};
-use crate::{map::Map, player::{Inventory, Player}};
+use crate::{map::Map, player::{Inventory, Item, Player}};
 use egui_macroquad::macroquad::prelude::*;
 
 impl Player {
@@ -16,33 +16,67 @@ impl Player {
         
         let vb = self.get_view_port();
         
-        draw_rectangle(1.0+vb.x, vb.y+(self.inventory.animation) * 10.0 - 9.0 , 20.0* 0.8, 2.0, GRAY);
-        draw_rectangle_lines(vb.x+1.0, vb.y+(self.inventory.animation) * 10.0 -9.0 , 20.0* 0.8, 2.0, 0.4,BLACK);
+        // draw_rectangle(1.0+vb.x, vb.y + 2.0, 20.0* 0.8, 2.0, GRAY);
+        // draw_rectangle_lines(vb.x+1.0, vb.y + 2.0, 20.0* 0.8, 2.0, 0.4,BLACK);
         
-        draw_rectangle(1.0+vb.x, vb.y+(self.inventory.animation) * 10.0 - 9.0 , self.health* 0.8, 2.0, RED);
-        draw_rectangle_lines(vb.x+1.0, vb.y+(self.inventory.animation) * 10.0 -9.0 , self.health* 0.8, 2.0, 0.4,BLACK);
+        // draw_rectangle(1.0+vb.x, vb.y + 2.0, self.health* 0.8, 2.0, RED);
+        // draw_rectangle_lines(vb.x+1.0, vb.y + 2.0, self.health* 0.8, 2.0, 0.4,BLACK);
 
-        let offset = (1.0-self.inventory.animation) * 100.0;
+
         
         egui_macroquad::ui(|egui_ctx| {
+            egui::Area::new("info")
             
-            
-            
-            if self.inventory.animation != 1.0 {
-                egui::Window::new("Inventory")
-                .anchor(Align2::CENTER_CENTER, [0.0,0.0])
-                .show(egui_ctx, |ui| {
-                    ui.label("Test");
-                });
-            } else {
-                egui::Area::new("settings")
+            .anchor(Align2::LEFT_TOP, [0.0,0.0])
+            .show(egui_ctx, |ui| {
+                ui.label(&format!("INTEGRITY: {}%", self.health/2.0 * 10.0));
                 
+                self.hover_ui = egui_ctx.is_pointer_over_area();
+            });
+            egui::Area::new("info_bottom")
+            .anchor(Align2::LEFT_BOTTOM, [0.0,0.0])
+            .show(egui_ctx, |ui| {
+                ui.label(&format!("X / Y: {} {}", self.x, self.y));
+                
+                self.hover_ui = egui_ctx.is_pointer_over_area();
+            });
+            
+            egui::Window::new("")
+            .anchor(Align2::LEFT_CENTER, [10.0,0.0])
+            .show(egui_ctx, |ui| {
+                ui.label(format!("CURRENTLY HOLDING: {}", self.item_in_hand));
+                ui.label("");
+
+                if ui.button(" > Crafting").clicked() {
+                    equip_item = Some(Item::Crafter { start: None })
+                }
+                if ui.button(" > Miner").clicked() {
+                    equip_item = Some(Item::Pickaxe)
+                }
+                    if ui.button("> Place Item").clicked() {
+                        equip_item = Some(self.inventory.items.get(0).unwrap_or(&Item::Hand).clone());
+                    }
+
+                if ui.button("  > Select Item").clicked() {
+                    self.inventory.open = !self.inventory.open;
+                }
+            });
+            
+                egui::Window::new("Inventory")
+                .vscroll(true)
+                .anchor(Align2::RIGHT_TOP, [0.0,0.0])
+                .open(&mut self.inventory.open)
+            
                 .show(egui_ctx, |ui| {
-                    if ui.button("Inventory").clicked() {
-                        self.inventory.open = true;
+                    for item in &self.inventory.items {
+                        if matches!(item, Item::PlacePixel { pixel: _, count: _ }) 
+                        && ui.button(&format!("equip {item}")).clicked() {
+                            equip_item = Some(item.clone());
+                        
+                    }
                     }
                 });
-            }
+            
         });
 
         // equip_item = Some(item.clone());
@@ -50,7 +84,7 @@ impl Player {
         if let Some(item) =  equip_item {
             self.gain_item(self.item_in_hand.clone());
             self.item_in_hand = item;
-            self.inventory.items.retain(|x| x != &self.item_in_hand);
+            self.inventory.items.retain(|x| x != &self.item_in_hand && matches!(x, Item::PlacePixel { pixel: _, count: _ }));
         }
 
         return false
