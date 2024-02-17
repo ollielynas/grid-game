@@ -137,6 +137,7 @@ void main() {
     }else {
         color = texture(Texture, uv);
     }
+    return;
 
     for (float i = 0.0; i < 0.71; i += 0.1313)
     {

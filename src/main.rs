@@ -101,6 +101,7 @@ async fn main() {
             .unwrap(),
         )
     };
+
     let overlay_material = if cfg!(target_family = "wasm") {
         None
     } else {
@@ -122,6 +123,33 @@ async fn main() {
                     uniforms: vec![
                         ("ScreenSize".to_owned(), UniformType::Float2),
                         ("Damage".to_owned(), UniformType::Float1),
+                    ],
+                    ..Default::default()
+                },
+            )
+            .unwrap(),
+        )
+    };
+
+    let post_process_material = if cfg!(target_family = "wasm") {
+        None 
+    } else {
+        Some(
+            load_material(
+                include_str!("./shader/vertex.glsl"),
+                include_str!("./shader/post_process.glsl"),
+
+                MaterialParams {
+                    pipeline_params: PipelineParams {
+                        color_blend: Some(BlendState::new(
+                            Equation::Add,
+                            BlendFactor::Value(BlendValue::SourceAlpha),
+                            BlendFactor::OneMinusValue(BlendValue::SourceAlpha),
+                        )),
+                        ..Default::default()
+                    },
+                    uniforms: vec![
+                        ("ScreenSize".to_owned(), UniformType::Float2)
                     ],
                     ..Default::default()
                 },
@@ -160,25 +188,30 @@ async fn main() {
         egui_ctx.set_style(robot_style());
         let mut fonts = FontDefinitions::default();
 
-// Install my own font (maybe supporting non-latin characters):
-fonts.font_data.insert("my_font".to_owned(),
-   FontData::from_static(include_bytes!("./font/FSEX300.ttf"))); // .ttf and .otf supported
+        // Install my own font (maybe supporting non-latin characters):
+        fonts.font_data.insert("my_font".to_owned(),
+        FontData::from_static(include_bytes!("./font/FSEX300.ttf"))); // .ttf and .otf supported
 
-// Put my font first (highest priority):
-fonts.families.get_mut(&FontFamily::Proportional).unwrap()
-    .insert(0, "my_font".to_owned());
+        // Put my font first (highest priority):
+        fonts.families.get_mut(&FontFamily::Proportional).unwrap()
+            .insert(0, "my_font".to_owned());
 
-// Put my font as last fallback for monospace:
-fonts.families.get_mut(&FontFamily::Monospace).unwrap()
-    .push("my_font".to_owned());
+        // Put my font as last fallback for monospace:
+        fonts.families.get_mut(&FontFamily::Monospace).unwrap()
+            .push("my_font".to_owned());
 
-egui_ctx.set_fonts(fonts);
+        egui_ctx.set_fonts(fonts);
     });
 
+    let mut curr_window_size = (screen_width() as u32, screen_height() as u32);
+    let mut rt = render_target(curr_window_size.0, curr_window_size.1);
 
     loop {
-
-
+        let new_window_size = (screen_width() as u32, screen_height() as u32);
+        if new_window_size != curr_window_size {
+            curr_window_size = new_window_size;
+            rt = render_target(curr_window_size.0, curr_window_size.1);
+        }
         // Draw things before egui
 
 
@@ -193,7 +226,10 @@ egui_ctx.set_fonts(fonts);
         average_damage.pop();
         average_damage.insert(0, player_damage_taken);
 
-        set_camera(&player.cam());
+        let mut cam = player.cam();
+        cam.render_target = Some(rt);
+        set_camera(&cam);
+
         // clear_background(Color { r: 0.8, g: 0.8, b: 0.8, a: 1.0 });
         clear_background(WHITE);
 
@@ -388,6 +424,17 @@ egui_ctx.set_fonts(fonts);
                 }
             }
         }
+
+        set_default_camera();
+        if let Some(mat) = post_process_material {
+            gl_use_material(mat);
+            mat.set_uniform("ScreenSize", (screen_width(), screen_height()))
+        }
+        draw_texture_ex(rt.texture, 0.0, 0.0, WHITE, DrawTextureParams {
+            dest_size: Some(vec2(screen_width(), screen_height())),
+            ..Default::default()
+        });
+        gl_use_default_material();
 
         // get_internal_gl().quad_context.apply_pipeline(&Pipeline::new(ctx, buffer_layout, attributes, shader));
         // egui::end_frame();
