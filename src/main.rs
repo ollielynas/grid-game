@@ -8,7 +8,7 @@ mod settings;
 mod update;
 mod egui_style;
 
-use egui_macroquad::{egui::{self, epaint::text::cursor, FontData, FontDefinitions, FontFamily}, macroquad::{self, prelude::*}};
+use egui_macroquad::{egui::{self, epaint::text::cursor, FontData, FontDefinitions, FontFamily}, macroquad::{self, miniquad::Pipeline, prelude::*}};
 use egui_style::robot_style;
 // mod profiling;
 mod craft;
@@ -298,6 +298,8 @@ egui_ctx.set_fonts(fonts);
             }
         }
 
+        
+
         gl_use_default_material();
 
         let hit = player.make_map_box(&map, player.view_port_cache, false);
@@ -353,13 +355,10 @@ egui_ctx.set_fonts(fonts);
             }
         }
 
-        root_ui().label(None, " ");
-        root_ui().label(None, " ");
-        root_ui().label(None, &format!("  fps: {}", get_fps()));
-        // root_ui().label(None, &format!("HP: {}", player.health));
-        if hover != Some(Pixel::Air) {
-            root_ui().label(None, &format!("{:?}", hover));
-        }
+        
+        // if hover != Some(Pixel::Air) {
+        //     root_ui().label(None, &format!("{:?}", hover));
+        // }
 
         if distance >= 25.0 {
             draw_circle(pt.x, pt.y, 0.5, LIGHTGRAY);
@@ -389,6 +388,7 @@ egui_ctx.set_fonts(fonts);
             }
         }
 
+        // get_internal_gl().quad_context.apply_pipeline(&Pipeline::new(ctx, buffer_layout, attributes, shader));
         // egui::end_frame();
         egui_macroquad::draw();
 

@@ -1,7 +1,7 @@
 use std::{default, fmt::format};
 
 // use egui::util::hash;
-use egui_macroquad::{egui::{self, Align2}, macroquad::{experimental::animation, math::{vec2, Vec2}, miniquad::Context, time::get_frame_time, ui::{hash, root_ui, widgets::{self, Group, Popup}}, window::{screen_height, screen_width}, Window}};
+use egui_macroquad::{egui::{self, Align2, Id}, macroquad::{experimental::animation, math::{vec2, Vec2}, miniquad::Context, time::get_frame_time, ui::{hash, root_ui, widgets::{self, Group, Popup}}, window::{screen_height, screen_width}, Window}};
 use crate::{map::Map, player::{Inventory, Item, Player}};
 use egui_macroquad::macroquad::prelude::*;
 
@@ -10,8 +10,7 @@ impl Player {
         let delta = get_frame_time();
         // let hand_item = self.item_in_hand;
         let mut equip_item: Option<crate::player::Item> = None;
-        self.inventory.animation -= if self.inventory.open {1.0} else {-1.0} * 4.0 * delta;
-        self.inventory.animation = self.inventory.animation.clamp(0.0, 1.0);
+        self.inventory.animation = (self.inventory.animation + delta) % 10.0;
 
         
         let vb = self.get_view_port();
@@ -29,35 +28,50 @@ impl Player {
             
             .anchor(Align2::LEFT_TOP, [0.0,0.0])
             .show(egui_ctx, |ui| {
+                ui.horizontal(|ui|{
                 ui.label(&format!("INTEGRITY: {}%", self.health/2.0 * 10.0));
-                
+                if self.inventory.animation % 1.0 > 0.5 && self.health < 5.0{
+                    ui.label("WARNING! LOW INTEGRITY");
+                }
+                });
+                ui.horizontal(|ui|{
+                ui.label(&format!("Battery: {}%", self.battery.round()));
+                if self.inventory.animation % 1.0 > 0.5 && self.battery < 25.0 {
+                    ui.label("WARNING! LOW BATTERY");
+                }else if self.charging {
+                    ui.label("*");
+                }
+                });
                 self.hover_ui = egui_ctx.is_pointer_over_area();
             });
-            egui::Area::new("info_bottom")
+            egui::Window::new("")
+            .id(Id::new("bottom info"))
             .anchor(Align2::LEFT_BOTTOM, [0.0,0.0])
             .show(egui_ctx, |ui| {
+                ui.label(&format!("FPS: {}", get_fps()));
                 ui.label(&format!("X / Y: {} {}", self.x, self.y));
                 
                 self.hover_ui = egui_ctx.is_pointer_over_area();
             });
             
             egui::Window::new("")
+            .id(Id::new("option"))
             .anchor(Align2::LEFT_CENTER, [10.0,0.0])
             .show(egui_ctx, |ui| {
                 ui.label(format!("CURRENTLY HOLDING: {}", self.item_in_hand));
                 ui.label("");
 
-                if ui.button(" > Crafting").clicked() {
+                if ui.button(" > Craft".to_owned() + if matches!(self.item_in_hand, Item::Crafter { start: _ }) {"*"} else {""}).clicked() {
                     equip_item = Some(Item::Crafter { start: None })
                 }
-                if ui.button(" > Miner").clicked() {
+                if ui.button(" > Mine".to_owned() + if matches!(self.item_in_hand, Item::Pickaxe) {"*"} else {""}).clicked() {
                     equip_item = Some(Item::Pickaxe)
                 }
-                    if ui.button("> Place Item").clicked() {
+                    if ui.button(" > Place".to_owned() + if matches!(self.item_in_hand, Item::PlacePixel { pixel: _, count:_ }) {"*"} else {""}).clicked() {
                         equip_item = Some(self.inventory.items.get(0).unwrap_or(&Item::Hand).clone());
                     }
 
-                if ui.button("  > Select Item").clicked() {
+                if matches!(self.item_in_hand, Item::PlacePixel { pixel: _, count:_ }) && ui.button("  > Select Item").clicked() {
                     self.inventory.open = !self.inventory.open;
                 }
             });
@@ -70,7 +84,7 @@ impl Player {
                 .show(egui_ctx, |ui| {
                     for item in &self.inventory.items {
                         if matches!(item, Item::PlacePixel { pixel: _, count: _ }) 
-                        && ui.button(&format!("equip {item}")).clicked() {
+                        && ui.button(&format!("> {item}")).clicked() {
                             equip_item = Some(item.clone());
                         
                     }

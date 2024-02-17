@@ -13,7 +13,7 @@ pub fn robot_style() -> Style {
     let background_color_button: Color32 = Color32::from_rgba_unmultiplied(255, 255, 255, 0);
     let background_color_focus: Color32 = Color32::from_rgba_unmultiplied(255, 255, 255, 0);
     let background_color_click: Color32 = Color32::from_rgba_unmultiplied(255, 255, 255, 0);
-
+    // let text_color: 
 
     Style { 
         text_styles: [

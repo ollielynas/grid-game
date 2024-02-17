@@ -118,6 +118,8 @@ pub struct Player {
     craft_timer: f32,
     pub view_port_cache: Rect,
     pub hover_ui: bool,
+    pub battery: f32,
+    pub charging: bool,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -347,6 +349,8 @@ impl Default for Player {
             craft_timer: 0.0,
             hover_ui: true,
             view_port_cache: Rect::default(),
+            battery: 100.0,
+            charging: false,
         }
     }
 }
@@ -656,6 +660,7 @@ impl Player {
         self.health = 20.0;
         self.x = self.respawn_pos.x;
         self.y = self.respawn_pos.y;
+        self.battery = 100.0;
     }
 
     pub fn get_player_box(&self, offset_x: f32, offset_y: f32) -> HitLineSet {
@@ -681,6 +686,7 @@ impl Player {
 
         let move_left_pressed = is_key_down(KeyCode::A) || (settings.mobile && root_ui().button(Vec2::new(0.0,screen_height()-100.0), "<"));
         let move_right_pressed = is_key_down(KeyCode::D) || (settings.mobile && root_ui().button(Vec2::new(50.0,screen_height()-100.0), ">"));
+        let jump_pressed = is_key_down(KeyCode::Space) || (settings.mobile && root_ui().button(Vec2::new(50.0,screen_height()-100.0), "^"));
 
         let mut damage: f32 = 0.0;
 
@@ -772,6 +778,13 @@ impl Player {
             max_falling_speed * delta * 12.0
         };
 
+        if map.sky_light[self.x as usize] >= self.y as usize || map.sky_light[self.x as usize + 1] >= self.y as usize {
+            self.battery += delta;
+            self.charging = true;
+        }else {
+            self.charging = false;
+        }
+
         self.jump_height_timer -= delta;
         self.jump_height_timer = self.jump_height_timer.clamp(0.0, 1.0);
         self.craft_timer -= delta;
@@ -782,9 +795,12 @@ impl Player {
             self.jump_height_timer = 0.2;
         }
 
-        if is_key_down(KeyCode::Space) && self.vy > -200.0 && self.jump_height_timer > 0.0 {
+        if jump_pressed && self.vy > -200.0 && self.jump_height_timer > 0.0 {
             self.vy -= 500.0 * delta;
         }
+        self.battery -= delta * 0.1;
+
+        self.battery =self.battery.clamp(0.0, 100.0);
 
         self.vx *= 0.75_f32;
 
