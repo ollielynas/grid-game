@@ -1,3 +1,2 @@
 /target
-*.map_save
-*.player_save
+/saves
