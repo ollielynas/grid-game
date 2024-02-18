@@ -15,7 +15,7 @@ use egui_style::robot_style;
 mod craft;
 use crate::craft::craft;
 
-use game_ui::home;
+use game_ui::{terminal};
 use savefile::prelude::*;
 use settings::Settings;
 
@@ -32,6 +32,8 @@ use player::{Item, Player};
 
 /// size of map
 const SIZE: usize = 301;
+
+const SAVEFILE_VERSION: u32 = 0;
 
 fn window_conf() -> Conf {
     Conf {
@@ -159,7 +161,26 @@ async fn main() {
         )
     };
 
-    let (mut map, mut player) = home().await;
+    egui_macroquad::ui(|egui_ctx| {
+        egui_ctx.set_style(robot_style());
+        let mut fonts = FontDefinitions::default();
+
+        // Install my own font (maybe supporting non-latin characters):
+        fonts.font_data.insert("my_font".to_owned(),
+        FontData::from_static(include_bytes!("./font/FSEX300.ttf"))); // .ttf and .otf supported
+
+        // Put my font first (highest priority):
+        fonts.families.get_mut(&FontFamily::Proportional).unwrap()
+            .insert(0, "my_font".to_owned());
+
+        // Put my font as last fallback for monospace:
+        fonts.families.get_mut(&FontFamily::Monospace).unwrap()
+            .push("my_font".to_owned());
+
+        egui_ctx.set_fonts(fonts);
+    });
+
+    let (mut map, mut player) = terminal().await;
 
     let mut texture: Texture2D = Texture2D::from_image(&map.image);
     let mut light_texture: Texture2D = Texture2D::from_image(&map.light_mask);
@@ -185,24 +206,7 @@ async fn main() {
     // root_ui().push_skin(&skin);
     // root_ui().pop_skin();
 
-    egui_macroquad::ui(|egui_ctx: &egui::Context| {
-        egui_ctx.set_style(robot_style());
-        let mut fonts = FontDefinitions::default();
-
-        // Install my own font (maybe supporting non-latin characters):
-        fonts.font_data.insert("my_font".to_owned(),
-        FontData::from_static(include_bytes!("./font/FSEX300.ttf"))); // .ttf and .otf supported
-
-        // Put my font first (highest priority):
-        fonts.families.get_mut(&FontFamily::Proportional).unwrap()
-            .insert(0, "my_font".to_owned());
-
-        // Put my font as last fallback for monospace:
-        fonts.families.get_mut(&FontFamily::Monospace).unwrap()
-            .push("my_font".to_owned());
-
-        egui_ctx.set_fonts(fonts);
-    });
+    
 
     let mut curr_window_size = (screen_width() as u32, screen_height() as u32);
     let mut rt = render_target(curr_window_size.0, curr_window_size.1);
@@ -345,7 +349,7 @@ async fn main() {
         hit.render();
 
         if player.render_ui() {
-            (map, player) = home().await;
+            (map, player) = terminal().await;
 
             texture = Texture2D::from_image(&map.image);
             light_texture = Texture2D::from_image(&map.light_mask);
@@ -437,6 +441,8 @@ async fn main() {
             ..Default::default()
         });
         gl_use_default_material();
+
+        
 
         // get_internal_gl().quad_context.apply_pipeline(&Pipeline::new(ctx, buffer_layout, attributes, shader));
         // egui::end_frame();
