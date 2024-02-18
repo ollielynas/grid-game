@@ -1,25 +1,45 @@
 use core::fmt;
 use grid::Grid;
 use rayon::prelude::*;
+use savefile::{load, load_file, save_file};
 use savefile_derive::Savefile;
 use std::{default, fmt::Display};
 use strum::IntoEnumIterator;
 
 use egui_macroquad::macroquad::{
-    camera::Camera2D, color::BLACK, input::{is_key_down, is_mouse_button_down, mouse_position}, math::{Rect, Vec2}, miniquad::{KeyCode, MouseButton}, shapes::draw_line, time::{get_fps, get_frame_time}, ui::root_ui, window::{screen_height, screen_width}
+    camera::Camera2D,
+    color::BLACK,
+    input::{is_key_down, is_mouse_button_down, mouse_position},
+    math::{Rect, Vec2},
+    miniquad::{KeyCode, MouseButton},
+    shapes::draw_line,
+    time::{get_fps, get_frame_time},
+    ui::root_ui,
+    window::{screen_height, screen_width},
 };
 
-use crate::{map::Map, settings::{self, Settings}};
-use crate::{craft::craft, entity::Entity, map::Pixel};
+use crate::{craft::craft, entity::Entity, map::Pixel, SAVEFILE_VERSION};
+use crate::{
+    map::Map,
+    settings::{self, Settings},
+};
 
-#[derive(PartialEq, Debug, Clone)]
-// #[derive(PartialEq, Debug, Clone, Savefile)]
+
+
+
+// #[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Debug, Clone, Savefile)]
 pub enum Item {
     Hand,
     Crafter { start: Option<(usize, usize)> },
     Pickaxe,
-    SpawnEntity { entity: Entity, count: i32 },
     PlacePixel { pixel: Pixel, count: i32 },
+}
+
+impl Default for Item {
+    fn default() -> Self {
+        Item::Hand
+    }
 }
 
 impl Display for Item {
@@ -28,15 +48,15 @@ impl Display for Item {
             Item::Hand => "Empty Hand".to_owned(),
             Item::Crafter { start } => "Crafting Wand".to_owned(),
             Item::Pickaxe => "Pickaxe".to_owned(),
-            Item::SpawnEntity { entity, count } => format!(
-                "{}x{}",
-                match entity.entity_type {
-                    crate::entity::EntityType::Tree => "Tree".to_owned(),
-                    crate::entity::EntityType::Soul => "Soul".to_owned(),
-                    crate::entity::EntityType::Fish { air } => "Fish".to_owned(),
-                },
-                count
-            ),
+            // Item::SpawnEntity { entity, count } => format!(
+            //     "{}x{}",
+            //     match entity.entity_type {
+            //         crate::entity::EntityType::Tree => "Tree".to_owned(),
+            //         crate::entity::EntityType::Soul => "Soul".to_owned(),
+            //         crate::entity::EntityType::Fish { air } => "Fish".to_owned(),
+            //     },
+            //     count
+            // ),
             Item::PlacePixel { pixel, count } => format!(
                 "{}x{}",
                 match pixel {
@@ -70,9 +90,12 @@ impl Display for Item {
     }
 }
 
+#[derive(Savefile)]
 pub struct Inventory {
     pub items: Vec<Item>,
     pub open: bool,
+
+    #[savefile_ignore]
     pub animation: f32,
 }
 
@@ -103,21 +126,43 @@ impl Inventory {
     }
 }
 
+#[derive(Savefile)]
 pub struct Player {
+    #[savefile_ignore]
     pub x: f32,
+    #[savefile_ignore]
     pub y: f32,
+    #[savefile_ignore]
     pub vx: f32,
+    #[savefile_ignore]
     pub vy: f32,
+    #[savefile_ignore]
     pub zoom: f32,
+    #[savefile_ignore]
     pub health: f32,
+    
     pub inventory: Inventory,
+    
+    // #[savefile_ignore]
     pub item_in_hand: Item,
+    
     pub name: String,
+
+    #[savefile_ignore]
+    #[savefile_introspect_ignore]
     pub respawn_pos: Vec2,
+
+    #[savefile_ignore]
     jump_height_timer: f32,
+    #[savefile_ignore]
     craft_timer: f32,
+
+    #[savefile_introspect_ignore]
+    #[savefile_ignore]
     pub view_port_cache: Rect,
+
     pub hover_ui: bool,
+    #[savefile_ignore]
     pub battery: f32,
     pub charging: bool,
 }
@@ -385,27 +430,26 @@ impl Player {
                     self.inventory.items.insert(0, Item::Pickaxe)
                 }
             }
-            Item::SpawnEntity { entity, count } => {
-                let mut added_count = false;
-                for i in self.inventory.items.iter_mut() {
-                    if let Item::SpawnEntity {
-                        entity: entity2,
-                        count: count2,
-                    } = i
-                    {
-                        if entity == *entity2 {
-                            *count2 += count;
-                            added_count = true;
-                        }
-                    }
-                }
-                if !added_count {
-                    self.inventory
-                        .items
-                        .insert(0, Item::SpawnEntity { entity, count })
-                }
-            }
-
+            // Item::SpawnEntity { entity, count } => {
+            //     let mut added_count = false;
+            //     for i in self.inventory.items.iter_mut() {
+            //         if let Item::SpawnEntity {
+            //             entity: entity2,
+            //             count: count2,
+            //         } = i
+            //         {
+            //             if entity == *entity2 {
+            //                 *count2 += count;
+            //                 added_count = true;
+            //             }
+            //         }
+            //     }
+            //     if !added_count {
+            //         self.inventory
+            //             .items
+            //             .insert(0, Item::SpawnEntity { entity, count })
+            //     }
+            // }
             Item::PlacePixel {
                 mut pixel,
                 mut count,
@@ -517,14 +561,14 @@ impl Player {
                     map.grid[pos] = Pixel::Air;
                 }
             }
-            Item::SpawnEntity { entity, count } => {
-                *count -= 1;
-                // real point point in world
-                map.spawn_entity(entity.entity_type.clone(), col as f32, row as f32);
-                if *count == 0 {
-                    self.item_in_hand = Item::Hand;
-                }
-            }
+            // Item::SpawnEntity { entity, count } => {
+            //     *count -= 1;
+            //     // real point point in world
+            //     map.spawn_entity(entity.entity_type.clone(), col as f32, row as f32);
+            //     if *count == 0 {
+            //         self.item_in_hand = Item::Hand;
+            //     }
+            // }
             Item::PlacePixel { pixel, count } => {
                 if map.grid[pos] != *pixel {
                     *count -= 1;
@@ -689,9 +733,12 @@ impl Player {
 
         let mut remaining = delta;
 
-        let move_left_pressed = is_key_down(KeyCode::A) || (settings.mobile && root_ui().button(Vec2::new(0.0,screen_height()-100.0), "<"));
-        let move_right_pressed = is_key_down(KeyCode::D) || (settings.mobile && root_ui().button(Vec2::new(50.0,screen_height()-100.0), ">"));
-        let jump_pressed = is_key_down(KeyCode::Space) || (settings.mobile && root_ui().button(Vec2::new(50.0,screen_height()-100.0), "^"));
+        let move_left_pressed = is_key_down(KeyCode::A)
+            || (settings.mobile && root_ui().button(Vec2::new(0.0, screen_height() - 100.0), "<"));
+        let move_right_pressed = is_key_down(KeyCode::D)
+            || (settings.mobile && root_ui().button(Vec2::new(50.0, screen_height() - 100.0), ">"));
+        let jump_pressed = is_key_down(KeyCode::Space)
+            || (settings.mobile && root_ui().button(Vec2::new(50.0, screen_height() - 100.0), "^"));
 
         let mut damage: f32 = 0.0;
 
@@ -783,10 +830,12 @@ impl Player {
             max_falling_speed * delta * 12.0
         };
 
-        if map.sky_light[self.x as usize] >= self.y as usize || map.sky_light[self.x as usize + 1] >= self.y as usize {
+        if map.sky_light[self.x as usize] >= self.y as usize
+            || map.sky_light[self.x as usize + 1] >= self.y as usize
+        {
             self.battery += delta;
             self.charging = true;
-        }else {
+        } else {
             self.charging = false;
         }
 
@@ -805,7 +854,7 @@ impl Player {
         }
         self.battery -= delta * 0.1;
 
-        self.battery =self.battery.clamp(0.0, 100.0);
+        self.battery = self.battery.clamp(0.0, 100.0);
 
         self.vx *= 0.75_f32;
 
@@ -834,4 +883,15 @@ impl Player {
 
         self.view_port_cache = self.get_view_port();
     }
+
+    fn save(&self) {
+        save_file(format!("saves/players/{}.player_save", self.name), SAVEFILE_VERSION, self);
+    }
+    fn load(name: &str) -> Player {
+        load_file(format!("saves/players/{}.player_save", name), SAVEFILE_VERSION).unwrap_or_default()
+    }
+
+
+
 }
+

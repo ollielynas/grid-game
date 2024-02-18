@@ -6,7 +6,7 @@ use grid::*;
 use egui_macroquad::macroquad::{
     color::{Color, WHITE}, math::Rect, texture::Image
 };
-use savefile_derive::{Savefile, SavefileNoIntrospect};
+use savefile_derive::Savefile;
 use strum_macros::EnumIter;
 
 use perlin2d::PerlinNoise2D;
