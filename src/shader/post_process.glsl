@@ -70,6 +70,6 @@ void main() {
 
     float whiteNoiseIntensity = (1.0 - healthPercent) * (1.0 - healthPercent);
 
-    float whiteNoise = whiteNoiseIntensity * (rand(vec2(uvX + time, uvY + time + 3.4)) * 0.3 - 0.15);
+    float whiteNoise = whiteNoiseIntensity * (rand(vec2(uvX + mod(time, 100.0), uvY + mod(time, 100.0) + 3.4)) * 0.3 - 0.15);
     fragColor = vec4(vec3(r, g, b) + whiteNoise, 1.0);
 }
