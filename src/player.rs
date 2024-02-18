@@ -3,7 +3,7 @@ use grid::Grid;
 use rayon::prelude::*;
 use savefile::{load, load_file, save_file};
 use savefile_derive::Savefile;
-use std::{default, fmt::Display};
+use std::{default, fmt::Display, fs::create_dir_all};
 use strum::IntoEnumIterator;
 
 use egui_macroquad::macroquad::{
@@ -139,6 +139,7 @@ pub struct Player {
     #[savefile_ignore]
     pub zoom: f32,
     #[savefile_ignore]
+    #[savefile_default_val="20.0"]
     pub health: f32,
     
     pub inventory: Inventory,
@@ -163,6 +164,7 @@ pub struct Player {
 
     pub hover_ui: bool,
     #[savefile_ignore]
+    #[savefile_default_val="100.0"]
     pub battery: f32,
     pub charging: bool,
 }
@@ -884,14 +886,20 @@ impl Player {
         self.view_port_cache = self.get_view_port();
     }
 
-    fn save(&self) {
-        save_file(format!("saves/players/{}.player_save", self.name), SAVEFILE_VERSION, self);
+    pub fn save(&self) {
+        
+
+        if let Err(error) = create_dir_all("saves/players/") {
+            println!("error {error}");
+        }
+
+        if let Err(error) = save_file(format!("saves/players/{}.player_save", self.name), SAVEFILE_VERSION, self) {
+            println!("error {error}");
+        }
     }
-    fn load(name: &str) -> Player {
+    pub fn load(name: &str) -> Player {
         load_file(format!("saves/players/{}.player_save", name), SAVEFILE_VERSION).unwrap_or_default()
     }
-
-
 
 }
 

@@ -19,7 +19,7 @@ use savefile::prelude::*;
 use settings::Settings;
 
 // use console_error_panic_hook;
-use std::{collections::HashSet, panic};
+use std::{collections::HashSet, panic, time::Instant};
 
 use egui_macroquad::macroquad::{
     miniquad::{BlendFactor, BlendState, BlendValue, Equation},
@@ -32,7 +32,7 @@ use player::{Item, Player};
 /// size of map
 const SIZE: usize = 301;
 
-const SAVEFILE_VERSION: u32 = 0;
+pub const SAVEFILE_VERSION: u32 = 0;
 
 fn window_conf() -> Conf {
     Conf {
@@ -47,6 +47,8 @@ fn window_conf() -> Conf {
 #[macroquad::main(window_conf)]
 async fn main() {
     // console_error_panic_hook::set_once();
+
+    let mut save_timer = Instant::now();
 
 
     let light_material = if cfg!(target_family = "wasm") {
@@ -218,6 +220,12 @@ async fn main() {
         }
         // Draw things before egui
 
+        if save_timer.elapsed().as_secs() > 10 {
+            player.save();
+            map.save();
+            save_timer = Instant::now();
+        }
+
 
         let delta = get_frame_time();
 
@@ -347,6 +355,8 @@ async fn main() {
         hit.render();
 
         if player.render_ui() {
+            player.save();
+            map.save();
             (map, player) = terminal().await;
 
             texture = Texture2D::from_image(&map.image);

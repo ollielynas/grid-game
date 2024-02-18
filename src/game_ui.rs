@@ -1,9 +1,9 @@
-use std::{default, fmt::format};
+use std::{default, fmt::format, fs};
 
 // use egui::util::hash;
 use crate::{
     map::Map,
-    player::{Inventory, Item, Player},
+    player::{self, Inventory, Item, Player},
 };
 use egui_macroquad::{egui::util::hash, macroquad::prelude::*};
 use egui_macroquad::{
@@ -72,6 +72,8 @@ impl Player {
                 .anchor(Align2::CENTER_BOTTOM, [0.0, 0.0])
                 .show(egui_ctx, |ui| {
                     if ui.button("LEAVE MISION").clicked() {
+                        // self.save();
+                        
                         return_value = true;
                     }
                     if ui
@@ -178,7 +180,6 @@ impl Player {
     }
 }
 
-
 pub async fn player_gen() -> Player {
     let mut name = "Player Name Here".to_owned();
     let mut player: Player;
@@ -223,6 +224,23 @@ pub async fn terminal() -> (Map, Player) {
     let mut advanced_water = true;
     let mut blank = false;
     let mut seed = fastrand::u64(10000..99999).to_string();
+
+    let mut loadable_names: Vec<String> = vec![];
+
+    let paths = fs::read_dir("./saves/maps/").unwrap();
+
+    for path in paths {
+        loadable_names.push(
+            path.unwrap()
+                .path()
+                .file_name()
+                .unwrap_or_default()
+                .to_str()
+                .unwrap_or_default()
+                .to_owned()
+                .replace(".map_save", ""),
+        );
+    }
 
     let mut process_state = 0;
 
@@ -274,7 +292,7 @@ pub async fn terminal() -> (Map, Player) {
                                 ui.text_edit_singleline(&mut name);
                                 ui.label("]")
                             });
-                            
+
                             ui.horizontal(|ui| {
                                 ui.label("Size: [");
                                 if ui.text_edit_singleline(&mut size).lost_focus() {
@@ -290,18 +308,40 @@ pub async fn terminal() -> (Map, Player) {
                                 ui.text_edit_singleline(&mut seed);
                                 ui.label("]")
                             });
-                            if ui.button(format!("[{}] Advanced Water", if advanced_water {"x"} else {" "})).clicked() {advanced_water = !advanced_water};
-                            if ui.button(format!("[{}] Creative", if creative {"x"} else {" "})).clicked() {creative = !creative};
-                            if ui.button(format!("[{}] Blank", if blank {"x"} else {" "})).clicked() {blank = !blank};
+                            if ui
+                                .button(format!(
+                                    "[{}] Advanced Water",
+                                    if advanced_water { "x" } else { " " }
+                                ))
+                                .clicked()
+                            {
+                                advanced_water = !advanced_water
+                            };
+                            if ui
+                                .button(format!("[{}] Creative", if creative { "x" } else { " " }))
+                                .clicked()
+                            {
+                                creative = !creative
+                            };
+                            if ui
+                                .button(format!("[{}] Blank", if blank { "x" } else { " " }))
+                                .clicked()
+                            {
+                                blank = !blank
+                            };
                             ui.label(" ");
                             if ui.button("> Launch").clicked() {
                                 fastrand::seed(hash(seed.clone()));
                                 let mut final_player = Player::new(name.clone());
                                 let mut final_map = Map::new_square(size_int, name.clone());
                                 final_map.gen_terrain();
-                                final_map.update_image();
-                                final_player.inventory = if creative {Inventory::creative()} else {Inventory::default()};
-                                let respawn_point = Vec2::new(final_map.size as f32 / 2.0 - 1.0, 4.0);
+                                final_player.inventory = if creative {
+                                    Inventory::creative()
+                                } else {
+                                    Inventory::default()
+                                };
+                                let respawn_point =
+                                    Vec2::new(final_map.size as f32 / 2.0 - 1.0, 4.0);
 
                                 final_player.x = respawn_point.x;
                                 final_player.y = respawn_point.y;
@@ -313,6 +353,29 @@ pub async fn terminal() -> (Map, Player) {
                                 final_map.update_image();
                                 map = Some(final_map);
                                 player = Some(final_player);
+                            }
+                        }
+                        3 => {
+                            ui.label(RichText::new("Continue Previous Mission").size(25.0));
+
+                            for save in &loadable_names {
+                                if ui.button(format!("> {save}")).clicked() {
+                                    let mut final_player = Player::load(&save);
+                                    let mut final_map = Map::load(&save);
+                                    let respawn_point =
+                                    Vec2::new(final_map.size as f32 / 2.0 - 1.0, 4.0);
+
+                                final_player.x = respawn_point.x;
+                                final_player.y = respawn_point.y;
+
+                                final_player.respawn_pos = respawn_point;
+                                for ((row, col), _) in final_map.grid.indexed_iter() {
+                                    final_map.update_texture_px.insert((row, col));
+                                }
+                                    final_map.update_image();
+                                    map = Some(final_map);
+                                    player = Some(final_player);
+                                }
                             }
                         }
                         _ => {

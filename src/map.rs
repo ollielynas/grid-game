@@ -1,18 +1,20 @@
 
 
-use std::collections::HashSet;
+use std::{collections::HashSet, fs::create_dir_all};
 
 use grid::*;
 use egui_macroquad::macroquad::{
     color::{Color, WHITE}, math::Rect, texture::Image
 };
+use savefile::{load_file, save_file};
 use savefile_derive::Savefile;
 use strum_macros::EnumIter;
 
 use perlin2d::PerlinNoise2D;
 
-use crate::entity::{Entity, EntityType};
+use crate::{entity::{Entity, EntityType}, SAVEFILE_VERSION};
 
+// #[repr(C)] 
 #[derive(Copy, Clone, PartialEq, Eq, Debug, EnumIter, Savefile)]
 pub enum Pixel {
     Air,
@@ -176,14 +178,41 @@ impl Pixel {
 
 
 }
-// #[derive(Savefile)]
+
+#[derive(Savefile)]
+struct MapSave {
+    pixel_vector: Vec<Pixel>,
+    size: u32,
+    realistic_fluid: bool,
+    name: String,
+
+}
+
+impl MapSave {
+    fn from_map(map:&Map) -> MapSave {
+        MapSave { 
+            name: map.name.clone(),
+            pixel_vector: map.grid.clone().into_vec(),
+            size: map.size,
+            realistic_fluid: map.realistic_fluid,
+        }
+    }
+
+    fn to_map(self) -> Map {
+        let mut new_map = Map::new_square(self.size as usize, self.name);
+
+        new_map.grid = Grid::from_vec(self.pixel_vector.clone(), self.size as usize);
+
+        return new_map;
+    }
+
+}
+// #[derive(Clone)]
 pub struct Map {
     pub grid: Grid<Pixel>,
     pub size: u32,
     pub update_texture_px: HashSet::<(usize, usize)>,
-    // #[savefile_ignore]
     pub image: Image,
-    // #[savefile_ignore]
     pub light_mask: Image,
     pub entities: Vec<Entity>,
     pub name: String,
@@ -196,6 +225,22 @@ pub struct Map {
 
 impl Map {
 
+    
+    pub fn save(&self) {
+        if let Err(error) = create_dir_all("saves/maps/") {
+            println!("error {error}");
+        }
+        let save = MapSave::from_map(self);
+        save_file(format!("saves/maps/{}.map_save", self.name), SAVEFILE_VERSION, &save);
+    }
+    pub fn load(name: &str) -> Map {
+        let save: Result<MapSave, savefile::prelude::SavefileError> = load_file(format!("saves/maps/{}.map_save", name), SAVEFILE_VERSION);
+        if let Ok(save) = save {
+            return save.to_map();
+        }else {
+            return Map::new_square(150, "error".to_owned());
+        }
+    }
     /// creates a randomly generated map based on perlin noise
     pub fn gen_terrain(&mut self) {
 
