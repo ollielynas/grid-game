@@ -369,10 +369,10 @@ impl Player {
     pub fn cam(&self) -> Camera2D {
         let scale = 100.0 / screen_width();
         Camera2D::from_display_rect(Rect {
-            x: self.x - screen_width() * scale / 2.0,
+            x: self.x - screen_width() * scale / 2.0 * if cfg!(target = "wasm") {-1.0} else {1.0},
             y: self.y - screen_height() * scale / 2.0,
             w: screen_width() * scale,
-            h: screen_height() * scale,
+            h: screen_height() * scale * if cfg!(target = "wasm") {-1.0} else {1.0},
         })
     }
 
@@ -571,7 +571,7 @@ impl Player {
     }
 
     pub fn save(&self) {
-        
+        if cfg!(target_family = "wasm") {return}
 
         if let Err(error) = create_dir_all("saves/players/") {
             println!("error {error}");

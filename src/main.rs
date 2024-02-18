@@ -49,7 +49,7 @@ fn window_conf() -> Conf {
 async fn main() {
     // console_error_panic_hook::set_once();
 
-    let mut save_timer = Instant::now();
+    let mut save_timer = 0.0;
 
 
     let light_material = if cfg!(target_family = "wasm") {
@@ -222,14 +222,16 @@ async fn main() {
         }
         // Draw things before egui
 
-        if save_timer.elapsed().as_secs() > 10 {
+        if !cfg!(target_family = "wasm") && save_timer > 10.0 {
             player.save();
             map.save();
-            save_timer = Instant::now();
+            save_timer = 0.0;
         }
 
 
         let delta = get_frame_time();
+
+        save_timer += delta;
 
         let mut player_damage_taken = player.health;
         player.update(&map, &settings);
@@ -241,6 +243,7 @@ async fn main() {
         average_damage.insert(0, player_damage_taken);
 
         let mut cam = player.cam();
+        
         cam.render_target = Some(rt);
         set_camera(&cam);
 
@@ -442,7 +445,12 @@ async fn main() {
             }
         }
 
+        
+        // let mut cam2 = Camera2D::default();
+        // cam2.zoom = Vec2::new(screen_width(), screen_height());
+        // set_camera(&cam2);
         set_default_camera();
+
         if let Some(mat) = post_process_material {
             gl_use_material(mat);
             mat.set_uniform("ScreenSize", (screen_width(), screen_height()));
@@ -450,6 +458,7 @@ async fn main() {
         }
         draw_texture_ex(rt.texture, 0.0, 0.0, WHITE, DrawTextureParams {
             dest_size: Some(vec2(screen_width(), screen_height())),
+            flip_y: true,
             ..Default::default()
         });
         gl_use_default_material();

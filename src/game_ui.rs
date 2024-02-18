@@ -1,4 +1,4 @@
-use std::{default, fmt::format, fs};
+use std::{default, fmt::format, fs::{self, create_dir_all}};
 
 // use egui::util::hash;
 use crate::{
@@ -227,9 +227,11 @@ pub async fn terminal() -> (Map, Player) {
 
     let mut loadable_names: Vec<String> = vec![];
 
-    let paths = fs::read_dir("./saves/maps/").unwrap();
-
-    for path in paths {
+    if !cfg!(target_family = "wasm") {
+        if let Err(error) = create_dir_all("saves/maps/") {
+            println!("error {error}");
+        }
+    for path in fs::read_dir("./saves/maps/").unwrap() {
         loadable_names.push(
             path.unwrap()
                 .path()
@@ -240,6 +242,7 @@ pub async fn terminal() -> (Map, Player) {
                 .to_owned()
                 .replace(".map_save", ""),
         );
+    }
     }
 
     let mut process_state = 0;
@@ -260,9 +263,11 @@ pub async fn terminal() -> (Map, Player) {
                             if ui.button("> New World").clicked() {
                                 process_state = 2;
                             }
+                            if !cfg!(target_family = "wasm") {
                             if ui.button("> Load World").clicked() {
                                 process_state = 3;
                             }
+                        }
                             if ui.button("> Debug World").clicked() {
                                 let mut final_player = Player::new("debug".to_owned());
                                 let mut final_map = Map::new_square(200, "debug".to_owned());
@@ -376,6 +381,9 @@ pub async fn terminal() -> (Map, Player) {
                                     map = Some(final_map);
                                     player = Some(final_player);
                                 }
+                            }
+                            if ui.button("> Back").clicked() {
+                                process_state = 1;
                             }
                         }
                         _ => {
