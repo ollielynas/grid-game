@@ -7,6 +7,7 @@ mod player;
 mod settings;
 mod update;
 mod egui_style;
+mod physics;
 
 use egui_macroquad::{egui::{self, epaint::text::cursor, FontData, FontDefinitions, FontFamily}, macroquad::{self, miniquad::Pipeline, prelude::*}};
 use egui_style::robot_style;
@@ -153,7 +154,8 @@ async fn main() {
                         ..Default::default()
                     },
                     uniforms: vec![
-                        ("ScreenSize".to_owned(), UniformType::Float2)
+                        ("ScreenSize".to_owned(), UniformType::Float2),
+                        ("healthPercent".to_owned(), UniformType::Float1)
                     ],
                     ..Default::default()
                 },
@@ -350,8 +352,9 @@ async fn main() {
 
         gl_use_default_material();
 
-        let hit = player.make_map_box(&map, player.view_port_cache, false);
+        //let hit = player.make_map_box(&map, player.view_port_cache, false);
         //let hit = player.make_map_box(&map, Rect::new(player.x - 20.0, player.y - 20.0, 40.0, 40.0), true);
+        let hit = physics::make_map_box(&map.grid, player.view_port_cache, false, 0.0, 0.0);
         hit.render();
 
         if player.render_ui() {
@@ -442,7 +445,8 @@ async fn main() {
         set_default_camera();
         if let Some(mat) = post_process_material {
             gl_use_material(mat);
-            mat.set_uniform("ScreenSize", (screen_width(), screen_height()))
+            mat.set_uniform("ScreenSize", (screen_width(), screen_height()));
+            mat.set_uniform("healthPercent", player.health / 20.0);
         }
         draw_texture_ex(rt.texture, 0.0, 0.0, WHITE, DrawTextureParams {
             dest_size: Some(vec2(screen_width(), screen_height())),
@@ -454,6 +458,7 @@ async fn main() {
 
         // get_internal_gl().quad_context.apply_pipeline(&Pipeline::new(ctx, buffer_layout, attributes, shader));
         // egui::end_frame();
+
         egui_macroquad::draw();
 
         next_frame().await
