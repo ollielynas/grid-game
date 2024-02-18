@@ -22,7 +22,9 @@ strum_macros = "0.26.1"
 rayon = "1.8.1"
 console_error_panic_hook = "0.1.7"
 egui-macroquad = "0.15.0"
+macroquad = { "version" = "0.3.26", features = ["backtrace"]}
 quad-url = "0.1.1"
+backtrace = "0.3.69"
 # egui = "0.26.2"
 
 

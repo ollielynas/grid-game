@@ -9,7 +9,7 @@ mod update;
 mod egui_style;
 mod physics;
 
-use egui_macroquad::{egui::{self, epaint::text::cursor, FontData, FontDefinitions, FontFamily}, macroquad::{self, miniquad::Pipeline, prelude::*}};
+use egui_macroquad::{egui::{self, epaint::text::cursor, FontData, FontDefinitions, FontFamily}, macroquad::{self, miniquad::{log, Pipeline}, prelude::*}};
 use egui_style::robot_style;
 // mod profiling;
 mod craft;
@@ -19,8 +19,8 @@ use game_ui::{terminal};
 use savefile::prelude::*;
 use settings::Settings;
 
-// use console_error_panic_hook;
-use std::{collections::HashSet, panic, time::Instant};
+/*use console_error_panic_hook;*/
+use std::{collections::HashSet, panic::{self, set_hook}, time::Instant};
 
 use egui_macroquad::macroquad::{
     miniquad::{BlendFactor, BlendState, BlendValue, Equation},
@@ -29,6 +29,8 @@ use egui_macroquad::macroquad::{
 };
 use map::{Map, Pixel};
 use player::{Item, Player};
+
+use backtrace::Backtrace;
 
 /// size of map
 const SIZE: usize = 301;
@@ -47,7 +49,25 @@ fn window_conf() -> Conf {
 
 #[macroquad::main(window_conf)]
 async fn main() {
-    // console_error_panic_hook::set_once();
+    /*set_panic_handler(|msg, backtrace| async move {
+        error!("Panic!");
+    });*/
+    
+    if cfg!(target_family="wasm") {
+        set_hook(Box::new(|info| {
+            if let Some(s) = info.payload().downcast_ref::<&str>() {
+                error!("{}", format!("Panic Occured! {s:?}"));
+            } else {
+                error!("Panic Occured! (No Payload)");
+            }
+
+            if let Some(location) = info.location() {
+                error!("Panic occured in file '{}' at line '{}'", location.file(), location.line());
+            }
+
+            error!("{:?}", Backtrace::new());
+        }));
+    }
 
     let mut save_timer = 0.0;
 
