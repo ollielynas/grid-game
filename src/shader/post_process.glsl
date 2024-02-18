@@ -6,6 +6,7 @@ in vec2 uv;
 uniform sampler2D Texture;
 uniform vec2 ScreenSize;
 uniform vec4 _Time;
+uniform float healthPercent;
 
 out vec4 fragColor;
 
@@ -14,6 +15,11 @@ const float noiseQuality = 250.0;
 const float noiseIntensity = 0.00088;
 const float offsetIntensity = 0.002;
 const float colorOffsetIntensity = 0.13;
+
+float healthMultiplier() {
+    return 1.1 / (healthPercent + 0.1);
+}
+
 
 float rand(vec2 co)
 {
@@ -38,22 +44,32 @@ void main() {
     {
         float d = mod(time * i, 1.7);
         float o = sin(1.0 - tan(time * 0.24 * i));
-    	o *= offsetIntensity;
+    	o *= offsetIntensity * healthMultiplier();
         modifiedUV.x += verticalBar(d, modifiedUV.y, o);
     }
 
     float uvY = modifiedUV.y;
     uvY *= noiseQuality;
     uvY = float(int(uvY)) * (1.0 / noiseQuality);
-    float noise = rand(vec2(time * 0.00001, uvY));
-    modifiedUV.x += noise * noiseIntensity;
 
-    vec2 offsetR = vec2(0.006 * sin(time), 0.0) * colorOffsetIntensity;
-    vec2 offsetG = vec2(0.0073 * (cos(time * 0.97)), 0.0) * colorOffsetIntensity;
+    float aspectRatio = ScreenSize.x / ScreenSize.y;
+
+    float uvX = modifiedUV.x * aspectRatio;
+    uvX *= noiseQuality;
+    uvX = float(int(uvX)) * (1.0 / (noiseQuality * aspectRatio));
+
+    float noise = rand(vec2(time * 0.00001, uvY));
+    modifiedUV.x += noise * noiseIntensity * healthMultiplier();
+
+    vec2 offsetR = vec2(0.006 * sin(time), 0.0) * colorOffsetIntensity * healthMultiplier();
+    vec2 offsetG = vec2(0.0073 * (cos(time * 0.97)), 0.0) * colorOffsetIntensity * healthMultiplier();
     
     float r = texture(Texture, modifiedUV + offsetR).r;
     float g = texture(Texture, modifiedUV + offsetG).g;
     float b = texture(Texture, modifiedUV).b;
 
-    fragColor = vec4(r, g, b, 1.0);
+    float whiteNoiseIntensity = (1.0 - healthPercent) * (1.0 - healthPercent);
+
+    float whiteNoise = whiteNoiseIntensity * (rand(vec2(uvX + time, uvY + time + 3.4)) * 0.3 - 0.15);
+    fragColor = vec4(vec3(r, g, b) + whiteNoise, 1.0);
 }

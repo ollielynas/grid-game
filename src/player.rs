@@ -18,11 +18,10 @@ use egui_macroquad::macroquad::{
     window::{screen_height, screen_width},
 };
 
-use crate::{map::Map, physics::{self, CollisionDirection, HitLineSet}, settings::{self, Settings}};
+use crate::{map::Map, physics::{self, CollisionDirection, HitLineSet}, settings::{self, Settings}, SAVEFILE_VERSION};
 use crate::{craft::craft, entity::Entity, map::Pixel};
 
-#[derive(PartialEq, Debug, Clone)]
-// #[derive(PartialEq, Debug, Clone, Savefile)]
+#[derive(PartialEq, Debug, Clone, Savefile)]
 pub enum Item {
     Hand,
     Crafter { start: Option<(usize, usize)> },
@@ -522,7 +521,7 @@ impl Player {
             self.charging = true;
         } else {
             self.charging = false;
-        }*/
+        }
 
         self.jump_height_timer -= delta;
         self.jump_height_timer = self.jump_height_timer.clamp(0.0, 1.0);

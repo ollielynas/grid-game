@@ -152,7 +152,8 @@ async fn main() {
                         ..Default::default()
                     },
                     uniforms: vec![
-                        ("ScreenSize".to_owned(), UniformType::Float2)
+                        ("ScreenSize".to_owned(), UniformType::Float2),
+                        ("healthPercent".to_owned(), UniformType::Float1)
                     ],
                     ..Default::default()
                 },
@@ -434,7 +435,8 @@ async fn main() {
         set_default_camera();
         if let Some(mat) = post_process_material {
             gl_use_material(mat);
-            mat.set_uniform("ScreenSize", (screen_width(), screen_height()))
+            mat.set_uniform("ScreenSize", (screen_width(), screen_height()));
+            mat.set_uniform("healthPercent", player.health / 20.0);
         }
         draw_texture_ex(rt.texture, 0.0, 0.0, WHITE, DrawTextureParams {
             dest_size: Some(vec2(screen_width(), screen_height())),
