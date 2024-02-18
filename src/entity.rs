@@ -2,15 +2,17 @@
 use std::clone;
 
 use grid::Grid;
-use egui_macroquad::macroquad::{miniquad::FilterMode, texture::Texture2D, time::get_frame_time};
+use egui_macroquad::macroquad::{math::{Rect, Vec2}, miniquad::FilterMode, texture::Texture2D, time::get_frame_time};
 use savefile_derive::Savefile;
 
-use crate::map::Pixel;
+use crate::{map::{Map, Pixel}, physics::{self, CollisionDirection}};
 #[derive(PartialEq, Debug, Clone)]
 // #[derive(PartialEq, Debug, Clone, Savefile)]
 pub struct Entity {
     pub x: f32,
     pub y: f32,
+    pub vx: f32,
+    pub vy: f32,
     pub height: f32,
     pub width: f32,
     pub texture: Texture2D,
@@ -29,6 +31,8 @@ impl Entity {
         return Entity {
             x,
             y,
+            vx: 0.0,
+            vy: 0.,
             height,
             width,
             texture,
@@ -39,12 +43,70 @@ impl Entity {
     pub fn update(&mut self, grid: &Grid<Pixel>) -> bool {
         let pixel = grid[(self.y as usize, self.x as usize)];
         let delta = get_frame_time();
-        if self.y >= grid.size().0 as f32 {
+        if self.y >= grid.size().0 as f32 || self.y < 0.0 {
             return false;
         }
-        if self.x > grid.size().1 as f32 {
+        if self.x > grid.size().1 as f32 || self.x < 0.0 {
             return false;
         }
+
+        let physics = match self.entity_type {
+            EntityType::Fish {..} => true,
+            _ => false
+        };
+
+        let terrain_hit = physics::make_map_box(
+            grid, 
+            Rect::new(self.x - 20.0, self.y - 20.0, 40.0, 40.0), 
+            true, 
+            self.x, 
+            self.y
+        );
+
+        if physics {
+            let mut remaining = delta;
+
+            while remaining > 0.0 {
+                let dp = Vec2::new(self.vx, self.vy) * remaining;
+    
+                /*let collision = self
+                    .get_player_box(0.0, 0.0)
+                    .get_collision_with(&terrain_hit, dp);*/
+
+                let bb = physics::make_bounding_box(Rect::new(self.x, self.y, self.texture.width() * self.entity_type.scale(), self.texture.height() * self.entity_type.scale()));
+                let collision = bb.get_collision_with(&terrain_hit, dp);
+
+                match collision {
+                    None => {
+                        self.x += self.vx * remaining;
+                        self.y += self.vy * remaining;
+    
+                        remaining = 0.0;
+                    }
+    
+                    Some(collision) => {
+                        self.x += self.vx * collision.time * delta;
+                        self.y += self.vy * collision.time * delta;
+    
+                        match collision.dir {
+                            CollisionDirection::Left | CollisionDirection::Right => {
+                                self.vx = 0.0;
+                            }
+    
+                            CollisionDirection::Down | CollisionDirection::Up => {
+                                self.vy = 0.0;
+                            }
+                        }
+    
+                        remaining -= collision.time;
+                    }
+                }
+            }
+        } else {
+            self.x += self.vx * delta;
+            self.y += self.vy * delta;
+        }
+
         match self.entity_type {
             EntityType::Tree => {
                 if !pixel.is_airy() {
@@ -55,18 +117,15 @@ impl Entity {
                 }
             },
             EntityType::Soul => {
-                self.y -= 10.0*delta;
+                self.vy = -10.0;
                 if self.y <= 2.0 {
                     return false;
                 }
             },
             EntityType::Fish{air} => {
-
+                self.vy = 5.0;
                 if pixel.is_airy() {
                     self.entity_type = EntityType::Fish { air: air-delta*5.0 };
-                    self.y += 10.0*delta
-                }else if pixel != Pixel::Water {
-                    self.y -= 11.0*delta;
                 }
 
                 if air <= 0.0 {

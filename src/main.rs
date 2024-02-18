@@ -7,6 +7,7 @@ mod player;
 mod settings;
 mod update;
 mod egui_style;
+mod physics;
 
 use egui_macroquad::{egui::{self, epaint::text::cursor, FontData, FontDefinitions, FontFamily}, macroquad::{self, miniquad::Pipeline, prelude::*}};
 use egui_style::robot_style;
@@ -184,7 +185,7 @@ async fn main() {
     // root_ui().push_skin(&skin);
     // root_ui().pop_skin();
 
-    egui_macroquad::ui(|egui_ctx| {
+    egui_macroquad::ui(|egui_ctx: &egui::Context| {
         egui_ctx.set_style(robot_style());
         let mut fonts = FontDefinitions::default();
 
@@ -338,8 +339,9 @@ async fn main() {
 
         gl_use_default_material();
 
-        let hit = player.make_map_box(&map, player.view_port_cache, false);
+        //let hit = player.make_map_box(&map, player.view_port_cache, false);
         //let hit = player.make_map_box(&map, Rect::new(player.x - 20.0, player.y - 20.0, 40.0, 40.0), true);
+        let hit = physics::make_map_box(&map.grid, player.view_port_cache, false, 0.0, 0.0);
         hit.render();
 
         if player.render_ui() {
@@ -438,6 +440,7 @@ async fn main() {
 
         // get_internal_gl().quad_context.apply_pipeline(&Pipeline::new(ctx, buffer_layout, attributes, shader));
         // egui::end_frame();
+
         egui_macroquad::draw();
 
         next_frame().await
