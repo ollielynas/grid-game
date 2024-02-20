@@ -43,6 +43,7 @@ impl Entity {
     pub fn update(&mut self, grid: &Grid<Pixel>) -> bool {
         let pixel = grid[(self.y as usize, self.x as usize)];
         let delta = get_frame_time();
+
         if self.y >= grid.size().0 as f32 || self.y < 0.0 {
             return false;
         }
@@ -57,7 +58,7 @@ impl Entity {
 
         let terrain_hit = physics::make_map_box(
             grid, 
-            Rect::new(self.x - 20.0, self.y - 20.0, 40.0, 40.0), 
+            Rect::new(self.x - 5.0, self.y - 5.0, 10.0, 10.0), 
             true, 
             self.x, 
             self.y
@@ -123,8 +124,11 @@ impl Entity {
                 }
             },
             EntityType::Fish{air} => {
-                self.vy = 5.0;
+                
+                
+                
                 if pixel.is_airy() {
+                    self.vy = 5.0;
                     self.entity_type = EntityType::Fish { air: air-delta*5.0 };
                 }
 

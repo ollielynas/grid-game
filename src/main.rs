@@ -331,6 +331,7 @@ async fn main() {
         //         map.update_texture_px.insert(pos);
         //     }
         // }
+        
         if !map.update_texture_px.is_empty() {
             map.update_image();
             texture.update(&map.image);

@@ -352,14 +352,12 @@ impl Map {
             let num = fastrand::u32(0..1000);
             match self.grid[(col,row)] {
                 Pixel::Water => {
-                    if num < 10 {
+                    if num < 100 {
                         self.spawn_entity(EntityType::Fish{air:20.0}, row as f32, col as f32);
                     }
                 },
                 Pixel::Grass => {
-                    if num < 100 {
-                        self.spawn_entity(EntityType::Tree, row as f32, col as f32-1.0);
-                    }
+
                 },
                 _ => {}, 
             }
