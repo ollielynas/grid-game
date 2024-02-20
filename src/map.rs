@@ -50,7 +50,7 @@ impl Default for Pixel {
 impl Pixel {
 
 
-    fn color(&self) -> Color {
+    pub fn color(&self) -> Color {
         match self {
             Pixel::Air => Color::from_rgba(250, 251, 255, 0),
             Pixel::Lamp => Color::from_rgba(250, 231, 235, 255),

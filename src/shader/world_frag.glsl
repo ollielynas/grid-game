@@ -13,8 +13,9 @@ const float colorOffsetIntensity = 0.5;
 
 
 in vec2 uv;
+in vec4 color;
 
-out vec4 color;
+out vec4 fragColor;
 
 
 float rand(vec2 co)
@@ -128,38 +129,15 @@ void main() {
     vec2 pixelCoord = uv * textureSize;
     vec2 uv = pixelCoord.xy / textureSize.xy ;
     vec4 px = texture(Texture, uv);
+
     vec4 px_rgb = round(px * vec4(255.0));
+
     if (px_rgb == vec4(247.0, 104.0, 6.0, 255.0)) {
         // color = mix(vec4(0.8784, 0.2471, 0.0, 1.0), vec4(0.8941, 0.3059, 0.0314, 1.0), sin(time*5.0*sin(rand2(round(uv * vec2(300.0))))));
-        color = round(vec4(10.0) * mix(vec4(0.7333, 0.1529, 0.0078, 1.0), vec4(0.9451, 0.4314, 0.1961, 1.0), cnoise(vec3(pixelCoord.x/2.0, pixelCoord.y/2.0 + time/3.0, time/2.0)) / 2.0 + 0.5))/vec4(10.0);
+        fragColor = round(vec4(10.0) * mix(vec4(0.7333, 0.1529, 0.0078, 1.0), vec4(0.9451, 0.4314, 0.1961, 1.0), cnoise(vec3(pixelCoord.x/2.0, pixelCoord.y/2.0 + time/3.0, time/2.0)) / 2.0 + 0.5))/vec4(10.0);
     } else if (px_rgb == vec4(255.0, 105.0, 180.0, 255.0)) {
-        color = vec4(hsb2rgb(vec3(pixelCoord.x/2.0 + pixelCoord.y + time, 0.5, 1.0)), 1.0f);
+        fragColor = vec4(hsb2rgb(vec3(pixelCoord.x/2.0 + pixelCoord.y + time, 0.5, 1.0)), 1.0f);
     }else {
-        color = texture(Texture, uv);
+        fragColor = px;
     }
-    return;
-
-    for (float i = 0.0; i < 0.71; i += 0.1313)
-    {
-        float d = mod(time * i, 1.7);
-        float o = sin(1.0 - tan(time * 0.24 * i));
-    	o *= offsetIntensity;
-        uv.x += verticalBar(d, uv.y, o) ;
-    }
-    
-    float uvY = uv.y;
-    uvY *= noiseQuality;
-    uvY = float(int(uvY)) * (1.0 / noiseQuality);
-    float noise = rand(vec2(time * 0.00001, uvY));
-    uv.x += noise * noiseIntensity;
-
-    vec2 offsetR = vec2(0.006 * sin(time), 0.0) * colorOffsetIntensity;
-    vec2 offsetG = vec2(0.0073 * (cos(time * 0.97)), 0.0) * colorOffsetIntensity;
-    
-    float r = texture(Texture, uv + offsetR).r;
-    float g = texture(Texture, uv + offsetG).g;
-    float b = texture(Texture, uv).b;
-
-    color = vec4(r,g,b,color.a);
-
 }

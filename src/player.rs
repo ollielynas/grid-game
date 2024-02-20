@@ -304,7 +304,7 @@ impl Player {
                 .unwrap_or_default();
             let result = craft(map.get_region(wand_rect));
             if result.0 {
-                for ((row, col), i) in result.1.indexed_iter() {
+                for ((row, col), i) in result.2.indexed_iter() {
                     let px = (row + wand_rect.y as usize, col + wand_rect.x as usize);
                     map.grid[px] = *i;
                     map.update_texture_px.insert(px);

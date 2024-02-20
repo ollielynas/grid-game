@@ -75,6 +75,7 @@ async fn main() {
     let light_material = if cfg!(target_family = "wasm") {
         None
     } else {
+        
         Some(
             load_material(
                 include_str!("./shader/vertex.glsl"),
@@ -270,6 +271,8 @@ async fn main() {
         // clear_background(Color { r: 0.8, g: 0.8, b: 0.8, a: 1.0 });
         clear_background(WHITE);
 
+
+        
     
         if !paused {
             map.update_state(&player);
@@ -308,13 +311,35 @@ async fn main() {
             player.use_item(&mut map, mouse_row, mouse_col);
         }
 
+        
+        let wand_rect = player
+            .craft_rect(map.size.clone() as usize)
+            .unwrap_or_default();
+        let craft_result = craft(map.get_region(wand_rect));
+
+        
+        
+        // for (pos @ (row, col),i) in craft_result.1.indexed_iter() {
+        //     if *i {
+        //         if get_time() % 1.0 > 0.5 {
+        //             draw_rectangle(col as f32 + wand_rect.x, row as f32 + wand_rect.y, 1.0, 1.0, GREEN);
+                    
+        //         } else {
+        //             // draw_rectangle(col as f32 + wand_rect.x, row as f32 + wand_rect.y, 1.0, 1.0, craft_result.2[pos].color());
+        //             map.image.set_pixel(col as u32 + wand_rect.x as u32, row as u32 + wand_rect.y as u32, craft_result.2[pos].color());
+        //         }
+        //         map.update_texture_px.insert(pos);
+        //     }
+        // }
         if !map.update_texture_px.is_empty() {
             map.update_image();
             texture.update(&map.image);
             map.update_texture_px = HashSet::new();
         }
-
+        
         draw_rectangle(player.x, player.y, 2.0, 3.0, ORANGE);
+
+        
 
         for e in &map.entities {
             draw_texture_ex(
@@ -342,10 +367,8 @@ async fn main() {
             },
         );
         if let Some(ref light_material) = light_material {
-            if cfg!(not(target_family = "wasm")) {
                 gl_use_material(*light_material);
                 light_material.set_uniform("textureSize", (map.size as f32, map.size as f32));
-            }
         }
         draw_texture_ex(
             light_texture,
@@ -395,10 +418,6 @@ async fn main() {
 
         // crafting
 
-        let wand_rect = player
-            .craft_rect(map.size.clone() as usize)
-            .unwrap_or_default();
-        let craft_result = craft(map.get_region(wand_rect));
 
         if let Some(wand_rect) = player.craft_rect(map.size as usize) {
             draw_rectangle_lines(
