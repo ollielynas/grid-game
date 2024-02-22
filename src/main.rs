@@ -11,6 +11,7 @@ mod physics;
 
 use egui_macroquad::{egui::{self, epaint::text::cursor, FontData, FontDefinitions, FontFamily}, macroquad::{self, miniquad::{log, Pipeline}, prelude::*}};
 use egui_style::robot_style;
+use macroquad::miniquad::Texture;
 // mod profiling;
 mod craft;
 use crate::craft::craft;
@@ -230,7 +231,7 @@ async fn main() {
     // root_ui().push_skin(&skin);
     // root_ui().pop_skin();
 
-    
+    let white_texture = Texture2D::from_rgba8(1, 1, &[255, 255, 255, 255]);
 
     let mut curr_window_size = (screen_width() as u32, screen_height() as u32);
     let mut rt = render_target(curr_window_size.0, curr_window_size.1);
@@ -271,8 +272,11 @@ async fn main() {
         // clear_background(Color { r: 0.8, g: 0.8, b: 0.8, a: 1.0 });
         clear_background(WHITE);
 
-
-        
+        if !map.update_texture_px.is_empty() {
+            map.update_image();
+            texture.update(&map.image);
+            map.update_texture_px.clear();
+        }
     
         if !paused {
             map.update_state(&player);
@@ -316,27 +320,7 @@ async fn main() {
             .craft_rect(map.size.clone() as usize)
             .unwrap_or_default();
         let craft_result = craft(map.get_region(wand_rect));
-
         
-        
-        // for (pos @ (row, col),i) in craft_result.1.indexed_iter() {
-        //     if *i {
-        //         if get_time() % 1.0 > 0.5 {
-        //             draw_rectangle(col as f32 + wand_rect.x, row as f32 + wand_rect.y, 1.0, 1.0, GREEN);
-                    
-        //         } else {
-        //             // draw_rectangle(col as f32 + wand_rect.x, row as f32 + wand_rect.y, 1.0, 1.0, craft_result.2[pos].color());
-        //             map.image.set_pixel(col as u32 + wand_rect.x as u32, row as u32 + wand_rect.y as u32, craft_result.2[pos].color());
-        //         }
-        //         map.update_texture_px.insert(pos);
-        //     }
-        // }
-        
-        if !map.update_texture_px.is_empty() {
-            map.update_image();
-            texture.update(&map.image);
-            map.update_texture_px = HashSet::new();
-        }
         
         draw_rectangle(player.x, player.y, 2.0, 3.0, ORANGE);
 
@@ -367,10 +351,35 @@ async fn main() {
                 ..Default::default()
             },
         );
+
+        for (pos @ (row, col),i) in craft_result.1.indexed_iter() {
+            if *i {
+                let x = col as f32 + wand_rect.x;
+                let y = row as f32 + wand_rect.y;
+                if get_time() % 1.0 > 0.5 {
+                    draw_rectangle(x, y, 1.0, 1.0, GREEN);
+                    
+                } else {
+                    //draw_rectangle(col as f32 + wand_rect.x, row as f32 + wand_rect.y, 1.0, 1.0, craft_result.2[pos].color());
+                    draw_texture_ex(white_texture, x, y, craft_result.2[pos].color(), DrawTextureParams {
+                        source: Some(Rect::new(
+                            x / map.size as f32, 
+                            y / map.size as f32, 
+                            1.0 / map.size as f32, 
+                            1.0 / map.size as f32
+                        )),
+                        dest_size: Some(Vec2::new(1.0, 1.0)),
+                        ..Default::default()
+                    });
+                }
+            }
+        }
+
         if let Some(ref light_material) = light_material {
                 gl_use_material(*light_material);
                 light_material.set_uniform("textureSize", (map.size as f32, map.size as f32));
         }
+
         draw_texture_ex(
             light_texture,
             0.0,

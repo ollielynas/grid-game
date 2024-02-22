@@ -128,7 +128,7 @@ void main() {
     float time = _Time.x;
     vec2 pixelCoord = uv * textureSize;
     vec2 uv = pixelCoord.xy / textureSize.xy ;
-    vec4 px = texture(Texture, uv);
+    vec4 px = texture(Texture, uv) * color / 255.0;
 
     vec4 px_rgb = round(px * vec4(255.0));
 
