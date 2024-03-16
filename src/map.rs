@@ -1,21 +1,26 @@
 
 
-use std::{collections::HashSet, fs::create_dir_all};
+use core::fmt;
+use std::fmt::Display;
+use std::fs::create_dir_all;
+use rustc_hash::FxHashMap;
+use rustc_hash::FxHashSet;
 
 use grid::*;
-use egui_macroquad::macroquad::{
+use egui_macroquad::{macroquad::{
     color::{Color, WHITE}, math::Rect, texture::Image
-};
+}};
 use savefile::{load_file, save_file};
 use savefile_derive::Savefile;
 use strum_macros::EnumIter;
 
 use perlin2d::PerlinNoise2D;
-
+    
+use crate::settings::Settings;
 use crate::{entity::{Entity, EntityType}, SAVEFILE_VERSION};
 
 // #[repr(C)] 
-#[derive(Copy, Clone, PartialEq, Eq, Debug, EnumIter, Savefile)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug, EnumIter, Savefile, Hash)]
 pub enum Pixel {
     Air,
     Sand,
@@ -179,6 +184,24 @@ impl Pixel {
 
 }
 
+pub enum Biome {
+    Surface,
+    Space,
+    Cave,
+}
+
+
+impl Display for Biome {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self {
+            Biome::Surface => "Surface",
+            Biome::Space => "Space",
+            Biome::Cave => "Cave",
+        };
+        write!(f, "{s}")
+    }
+}
+
 #[derive(Savefile)]
 struct MapSave {
     pixel_vector: Vec<Pixel>,
@@ -211,7 +234,7 @@ impl MapSave {
 pub struct Map {
     pub grid: Grid<Pixel>,
     pub size: u32,
-    pub update_texture_px: HashSet::<(usize, usize)>,
+    pub update_texture_px: FxHashSet::<(usize, usize)>,
     pub image: Image,
     pub light_mask: Image,
     pub entities: Vec<Entity>,
@@ -220,6 +243,9 @@ pub struct Map {
     pub detected_fluids: Grid<bool>,
     pub realistic_fluid: bool,
     pub sky_light: Vec<usize>,
+    pub block_percent: FxHashMap<Pixel, i16>,
+    pub biome: Biome,
+    pub settings: Settings,
     // pub heatmap: Image,
 }
 
@@ -359,6 +385,11 @@ impl Map {
                 Pixel::Grass => {
 
                 },
+                Pixel::Air if col < self.size as usize / 4 => {
+                    if num < 2 {
+                        // self.spawn_entity(EntityType::Boid, row as f32, col as f32);
+                    }
+                }
                 _ => {}, 
             }
         }
@@ -374,10 +405,10 @@ impl Map {
         let grid = Grid::from_vec(
             vec![Pixel::Air;size.pow(2)], size);
 
-        return Map {
+        Map {
             grid,
             size: size as u32,
-            update_texture_px: HashSet::new(),
+            update_texture_px: FxHashSet::default(),
             image: Image::gen_image_color(size as u16, size as u16, WHITE),
             light_mask: Image::gen_image_color(size as u16, size as u16, Color { r: 0.0, g: 0.0, b: 0.0, a: 0.3 }),
             entities: vec![],
@@ -385,8 +416,11 @@ impl Map {
             detected_fluids: Grid::from_vec(vec![false; size.pow(2) as usize], size as usize),
             name,
             realistic_fluid: true,
-            sky_light: vec![0;size]
-        };
+            sky_light: vec![0;size],
+            block_percent: FxHashMap::default(),
+            biome: Biome::Surface,
+            settings: Settings::default(),
+        }
     }
 
 

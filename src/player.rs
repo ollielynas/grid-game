@@ -1,25 +1,21 @@
 use core::fmt;
-use grid::Grid;
-use rayon::prelude::*;
-use savefile::{load, load_file, save_file};
+use savefile::{load_file, save_file};
 use savefile_derive::Savefile;
-use std::{default, fmt::Display, fs::create_dir_all};
+use std::{fmt::Display, fs::create_dir_all};
 use strum::IntoEnumIterator;
 
 use egui_macroquad::macroquad::{
     camera::Camera2D,
-    color::BLACK,
-    input::{is_key_down, is_mouse_button_down, mouse_position},
+    input::{is_key_down, mouse_position},
     math::{Rect, Vec2},
-    miniquad::{KeyCode, MouseButton},
-    shapes::draw_line,
-    time::{get_fps, get_frame_time},
+    miniquad::KeyCode,
+    time::get_frame_time,
     ui::root_ui,
     window::{screen_height, screen_width},
 };
 
-use crate::{map::Map, physics::{self, CollisionDirection, HitLineSet}, settings::{self, Settings}, SAVEFILE_VERSION};
-use crate::{craft::craft, entity::Entity, map::Pixel};
+use crate::{map::Map, physics::{self, CollisionDirection, HitLineSet}, settings::Settings, SAVEFILE_VERSION};
+use crate::{craft::craft, map::Pixel};
 
 #[derive(PartialEq, Debug, Clone, Savefile)]
 pub enum Item {
@@ -39,7 +35,7 @@ impl Display for Item {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let s = match self {
             Item::Hand => "Empty Hand".to_owned(),
-            Item::Crafter { start } => "Crafting Wand".to_owned(),
+            Item::Crafter { start:_ } => "Crafting Wand".to_owned(),
             Item::Pickaxe => "Pickaxe".to_owned(),
             // Item::SpawnEntity { entity, count } => format!(
             //     "{}x{}",
@@ -199,7 +195,7 @@ impl Player {
     pub fn gain_item(&mut self, item: Item) {
         match item {
             Item::Hand => {}
-            Item::Crafter { start } => {
+            Item::Crafter { start:_ } => {
                 if !self
                     .inventory
                     .items
@@ -275,8 +271,8 @@ impl Player {
             Item::Crafter { start: Some(start) } => {
                 let mouse = mouse_position();
                 let pt = self.cam().screen_to_world(Vec2::new(mouse.0, mouse.1));
-                let distance = (self.x.max(pt.x) - self.x.min(pt.x))
-                    .hypot(self.y.max(pt.y) - self.y.min(pt.y));
+                // let distance = (self.x.max(pt.x) - self.x.min(pt.x))
+                    // .hypot(self.y.max(pt.y) - self.y.min(pt.y));
 
                 let row = (pt.y as usize).clamp(2, size - 2);
                 let col = (pt.x as usize).clamp(2, size - 2);
@@ -410,12 +406,17 @@ impl Player {
 
         let mut remaining = delta;
 
-        let move_left_pressed = is_key_down(KeyCode::A)
-            || (settings.mobile && root_ui().button(Vec2::new(0.0, screen_height() - 100.0), "<"));
-        let move_right_pressed = is_key_down(KeyCode::D)
-            || (settings.mobile && root_ui().button(Vec2::new(50.0, screen_height() - 100.0), ">"));
-        let jump_pressed = is_key_down(KeyCode::Space)
-            || (settings.mobile && root_ui().button(Vec2::new(50.0, screen_height() - 100.0), "^"));
+        let move_left_pressed = (is_key_down(KeyCode::A)
+            || (settings.mobile && root_ui().button(Vec2::new(0.0, screen_height() - 100.0), "<"))) 
+            && self.battery != 0.0;
+        let move_right_pressed = (is_key_down(KeyCode::D)
+            || (settings.mobile && root_ui().button(Vec2::new(50.0, screen_height() - 100.0), ">")))
+            && self.battery != 0.0;
+        let jump_pressed = (is_key_down(KeyCode::Space)
+            || (settings.mobile && root_ui().button(Vec2::new(50.0, screen_height() - 100.0), "^")))
+            && self.battery != 0.0;
+
+        
 
         let mut damage: f32 = 0.0;
 
@@ -429,11 +430,6 @@ impl Player {
             self.respawn()
         }
 
-        /*let terrain_hit = self.make_map_box(
-            map,
-            Rect::new(self.x - 20.0, self.y - 20.0, 40.0, 40.0),
-            true,
-        );*/
         let terrain_hit = physics::make_map_box(
             &map.grid, 
             Rect::new(self.x - 20.0, self.y - 20.0, 40.0, 40.0), 

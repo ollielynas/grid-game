@@ -11,7 +11,7 @@ mod physics;
 
 use egui_macroquad::{egui::{self, epaint::text::cursor, FontData, FontDefinitions, FontFamily}, macroquad::{self, miniquad::{log, Pipeline}, prelude::*}};
 use egui_style::robot_style;
-// mod profiling;
+use entity::{BoidData, EntityType};
 mod craft;
 use crate::craft::craft;
 
@@ -32,8 +32,6 @@ use player::{Item, Player};
 
 use backtrace::Backtrace;
 
-/// size of map
-const SIZE: usize = 301;
 
 pub const SAVEFILE_VERSION: u32 = 0;
 
@@ -230,7 +228,7 @@ async fn main() {
     // root_ui().push_skin(&skin);
     // root_ui().pop_skin();
 
-    
+    let mut boid_data: Vec<BoidData> = vec![];
 
     let mut curr_window_size = (screen_width() as u32, screen_height() as u32);
     let mut rt = render_target(curr_window_size.0, curr_window_size.1);
@@ -244,8 +242,7 @@ async fn main() {
         // Draw things before egui
 
         if !cfg!(target_family = "wasm") && save_timer > 10.0 {
-            player.save();
-            map.save();
+            save_all(&player, &map);
             save_timer = 0.0;
         }
 
@@ -269,14 +266,23 @@ async fn main() {
         set_camera(&cam);
 
         // clear_background(Color { r: 0.8, g: 0.8, b: 0.8, a: 1.0 });
-        clear_background(WHITE);
+        clear_background(SKYBLUE);
 
-
-        
+        boid_data.clear();
+        for entity in &map.entities {
+            if entity.entity_type == EntityType::Boid {
+                boid_data.push(BoidData {
+                    x: entity.x,
+                    y: entity.y,
+                    vx: entity.vx,
+                    vy: entity.vy
+                })
+            }
+        }
     
         if !paused {
             map.update_state(&player);
-            map.entities.retain_mut(|x| x.update(&(map.grid)));
+            map.entities.retain_mut(|x| x.update(&(map.grid), &boid_data));
         }
 
         light_texture.update(&map.light_mask);
@@ -311,7 +317,6 @@ async fn main() {
             player.use_item(&mut map, mouse_row, mouse_col);
         }
 
-        
         let wand_rect = player
             .craft_rect(map.size.clone() as usize)
             .unwrap_or_default();
@@ -335,9 +340,11 @@ async fn main() {
         if !map.update_texture_px.is_empty() {
             map.update_image();
             texture.update(&map.image);
-            map.update_texture_px = HashSet::new();
+            map.update_texture_px = HashSet::default();
         }
         
+
+        draw_rectangle(0.0, 0.0, map.size as f32, map.size as f32, WHITE);
         draw_rectangle(player.x, player.y, 2.0, 3.0, ORANGE);
 
         
@@ -404,9 +411,9 @@ async fn main() {
         let hit = physics::make_map_box(&map.grid, player.view_port_cache, false, 0.0, 0.0);
         hit.render();
 
-        if player.render_ui() {
-            player.save();
-            map.save();
+        if player.render_ui(&map) {
+            save_all(&player, &map);
+            clear_background(BLACK);
             (map, player) = terminal().await;
 
             texture = Texture2D::from_image(&map.image);
@@ -418,6 +425,8 @@ async fn main() {
         player.get_player_box(0.0, 0.0).render();
 
         // crafting
+
+        
 
 
         if let Some(wand_rect) = player.craft_rect(map.size as usize) {
@@ -512,4 +521,12 @@ async fn main() {
 
         next_frame().await
     }
+}
+
+
+
+pub fn save_all(player: &Player, map: &Map) {
+    player.save();
+    map.save();
+    map.settings.save();
 }

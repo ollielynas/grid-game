@@ -23,7 +23,7 @@ use egui_macroquad::{
 };
 
 impl Player {
-    pub fn render_ui(&mut self) -> bool {
+    pub fn render_ui(&mut self, map: &Map) -> bool {
         let delta = get_frame_time();
         // let hand_item = self.item_in_hand;
         let mut equip_item: Option<crate::player::Item> = None;
@@ -41,6 +41,7 @@ impl Player {
         egui_macroquad::ui(|egui_ctx| {
             egui::Area::new("info")
                 .anchor(Align2::LEFT_TOP, [5.0, 5.0])
+                
                 .show(egui_ctx, |ui| {
                     ui.horizontal(|ui| {
                         ui.label(&format!("INTEGRITY: {}%", self.health / 2.0 * 10.0));
@@ -64,6 +65,7 @@ impl Player {
                 .show(egui_ctx, |ui| {
                     ui.label(&format!("FPS: {}", get_fps()));
                     ui.label(&format!("X / Y: {} {}", self.x, self.y));
+                    ui.label(&format!("BIOME {}", map.biome));
 
                     self.hover_ui = egui_ctx.is_pointer_over_area();
                 });
@@ -180,29 +182,7 @@ impl Player {
     }
 }
 
-pub async fn player_gen() -> Player {
-    let mut name = "Player Name Here".to_owned();
-    let mut player: Player;
 
-    let mut creative_player = false;
-
-    loop {
-        clear_background(WHITE);
-
-        root_ui().label(None, "New Player");
-        root_ui().input_text(2, "Name", &mut name);
-        root_ui().checkbox(432, "creative Player", &mut creative_player);
-        if root_ui().button(None, "Create") {
-            player = Player::new(name);
-            if creative_player {
-                player.inventory = Inventory::creative();
-            }
-            return player;
-        }
-
-        next_frame().await
-    }
-}
 
 fn color_command(s: &str) -> Color32 {
     match s {
@@ -213,11 +193,19 @@ fn color_command(s: &str) -> Color32 {
 }
 
 /// note to self: all terminal commands should be full caps
+
+pub async fn splash() {
+    loop {
+        
+    }
+}
+
 pub async fn terminal() -> (Map, Player) {
     let mut player = None;
     let mut map = None;
 
-    let mut name = "todo make world gen".to_owned();
+
+    let mut name = format!("Planet-{}{}",fastrand::u16(100..=999),fastrand::char('a'..'z'));
     let mut size = "300".to_string();
     let mut size_int = 300;
     let mut creative = false;
@@ -248,10 +236,9 @@ pub async fn terminal() -> (Map, Player) {
     let mut process_state = 0;
 
     loop {
-        clear_background(BLACK);
         egui_macroquad::ui(|egui_ctx| {
             egui::Area::new("terminal")
-                .anchor(Align2::LEFT_TOP, [10.0, 10.0])
+                .anchor(Align2::LEFT_TOP, [0.0, 0.0])
                 .show(egui_ctx, |ui| {
                     match process_state {
                         0 => {
@@ -392,6 +379,8 @@ pub async fn terminal() -> (Map, Player) {
                     }
                 });
         });
+
+        clear_background(BLACK);
 
         egui_macroquad::draw();
 

@@ -25,6 +25,7 @@ egui-macroquad = "0.15.0"
 macroquad = { "version" = "0.3.26", features = ["backtrace"]}
 quad-url = "0.1.1"
 backtrace = "0.3.69"
+rustc-hash = "1.1.0"
 # egui = "0.26.2"
 
 
