@@ -12,6 +12,8 @@ mod physics;
 use egui_macroquad::{egui::{self, epaint::text::cursor, FontData, FontDefinitions, FontFamily}, macroquad::{self, miniquad::{log, Pipeline}, prelude::*}};
 use egui_style::robot_style;
 use entity::{BoidData, EntityType};
+use macroquad::miniquad::Texture;
+// mod profiling;
 mod craft;
 use crate::craft::craft;
 
@@ -20,7 +22,7 @@ use savefile::prelude::*;
 use settings::Settings;
 
 /*use console_error_panic_hook;*/
-use std::{collections::HashSet, panic::{self, set_hook}, time::Instant};
+use std::{collections::HashSet, env, panic::{self, set_hook}, time::Instant};
 
 use egui_macroquad::macroquad::{
     miniquad::{BlendFactor, BlendState, BlendValue, Equation},
@@ -50,6 +52,8 @@ async fn main() {
     /*set_panic_handler(|msg, backtrace| async move {
         error!("Panic!");
     });*/
+
+    env::set_var("RUST_BACKTRACE", "1");
     
     if cfg!(target_family="wasm") {
         set_hook(Box::new(|info| {
@@ -229,6 +233,7 @@ async fn main() {
     // root_ui().pop_skin();
 
     let mut boid_data: Vec<BoidData> = vec![];
+    let white_texture = Texture2D::from_rgba8(1, 1, &[255, 255, 255, 255]);
 
     let mut curr_window_size = (screen_width() as u32, screen_height() as u32);
     let mut rt = render_target(curr_window_size.0, curr_window_size.1);
@@ -279,6 +284,11 @@ async fn main() {
                 })
             }
         }
+        if !map.update_texture_px.is_empty() {
+            map.update_image();
+            texture.update(&map.image);
+            map.update_texture_px.clear();
+        }
     
         if !paused {
             map.update_state(&player);
@@ -321,7 +331,6 @@ async fn main() {
             .craft_rect(map.size.clone() as usize)
             .unwrap_or_default();
         let craft_result = craft(map.get_region(wand_rect));
-
         
         
         // for (pos @ (row, col),i) in craft_result.1.indexed_iter() {
@@ -374,10 +383,35 @@ async fn main() {
                 ..Default::default()
             },
         );
+
+        for (pos @ (row, col),i) in craft_result.1.indexed_iter() {
+            if *i {
+                let x = col as f32 + wand_rect.x;
+                let y = row as f32 + wand_rect.y;
+                if get_time() % 1.0 > 0.5 {
+                    draw_rectangle(x, y, 1.0, 1.0, GREEN);
+                    
+                } else {
+                    //draw_rectangle(col as f32 + wand_rect.x, row as f32 + wand_rect.y, 1.0, 1.0, craft_result.2[pos].color());
+                    draw_texture_ex(white_texture, x, y, craft_result.2[pos].color(), DrawTextureParams {
+                        source: Some(Rect::new(
+                            x / map.size as f32, 
+                            y / map.size as f32, 
+                            1.0 / map.size as f32, 
+                            1.0 / map.size as f32
+                        )),
+                        dest_size: Some(Vec2::new(1.0, 1.0)),
+                        ..Default::default()
+                    });
+                }
+            }
+        }
+
         if let Some(ref light_material) = light_material {
                 gl_use_material(*light_material);
                 light_material.set_uniform("textureSize", (map.size as f32, map.size as f32));
         }
+
         draw_texture_ex(
             light_texture,
             0.0,
