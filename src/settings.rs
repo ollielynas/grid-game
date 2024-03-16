@@ -26,7 +26,7 @@ impl Default for Settings {
         let mut settings:Settings = load_file("saves/user_settings.bin", SAVEFILE_VERSION).unwrap_or(
             Settings {
                 mobile: false,
-                sim_distance: 10000,
+                sim_distance: MIN_SIM_DISTANCE +1,
                 min_fps: 25,
                 dynamic_simulation_distance: true,
             }

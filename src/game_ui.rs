@@ -5,7 +5,7 @@ use crate::{
     map::Map,
     player::{self, Inventory, Item, Player},
 };
-use egui_macroquad::{egui::util::hash, macroquad::prelude::*};
+use egui_macroquad::{egui::{util::hash, WidgetText}, macroquad::prelude::*};
 use egui_macroquad::{
     egui::{self, Align2, Color32, Id, RichText},
     macroquad::{
@@ -197,6 +197,24 @@ fn color_command(s: &str) -> Color32 {
 pub async fn splash() {
     loop {
         
+    }
+}
+
+pub async fn display_message(text: impl Into<WidgetText> + std::marker::Copy) {
+    loop {
+        clear_background(BLACK);
+
+        egui_macroquad::ui(|egui_ctx| {
+            egui::Area::new("terminal")
+                .anchor(Align2::LEFT_TOP, [0.0, 0.0])
+                .show(egui_ctx, |ui| {
+                    ui.label(text);
+                });
+            });
+
+        egui_macroquad::draw();
+
+        next_frame().await;
     }
 }
 

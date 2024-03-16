@@ -398,10 +398,10 @@ impl Player {
     }
 
     pub fn update(&mut self, map: &Map, settings: &Settings) {
-        let delta = if is_key_down(KeyCode::K) {
+        let delta = if is_key_down(KeyCode::K) && cfg!(debug_assertions) {
             get_frame_time() * 10.0
         } else {
-            get_frame_time()
+            get_frame_time().min(1.0)
         };
 
         let mut remaining = delta;

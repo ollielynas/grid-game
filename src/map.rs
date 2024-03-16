@@ -16,6 +16,7 @@ use strum_macros::EnumIter;
 
 use perlin2d::PerlinNoise2D;
     
+use crate::game_ui::display_message;
 use crate::settings::Settings;
 use crate::{entity::{Entity, EntityType}, SAVEFILE_VERSION};
 
@@ -274,6 +275,8 @@ impl Map {
 
         self.make_square(Pixel::Air);
         let new_grid = self.grid.clone();
+    
+    // display_message("making perlin noise").await;
 
     let perlin = PerlinNoise2D::new(
     // octaves - The amount of detail in Perlin noise.
@@ -331,6 +334,9 @@ impl Map {
 );
 
         for ((row, col), _) in new_grid.indexed_iter() {
+            if row%10 == 0 && col%10 == 0 {
+                // display_message(&format!("generating terrain {row}X{col} / {}{} ", self.size,self.size)).await;
+            }
             if perlin.get_noise(col as f64, row as f64) > -10.0 {
                 if perlin2 .get_noise(col as f64, row as f64) > 100.0 {
                     self.grid[(row,col)] = Pixel::Sand;
@@ -378,9 +384,7 @@ impl Map {
             let num = fastrand::u32(0..1000);
             match self.grid[(col,row)] {
                 Pixel::Water => {
-                    if num < 100 {
-                        self.spawn_entity(EntityType::Fish{air:20.0}, row as f32, col as f32);
-                    }
+                    
                 },
                 Pixel::Grass => {
 
@@ -395,7 +399,7 @@ impl Map {
         }
         for i in 2..(self.size -2) {
             if fastrand::f32() > 0.95 {
-            self.grid[(4, i as usize)] = Pixel::Seed;
+            self.grid[((self.size as f32 * 0.22) as usize -1, i as usize)] = Pixel::Seed;
             }
         }
     } 

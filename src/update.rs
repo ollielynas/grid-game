@@ -6,14 +6,12 @@ use crate::{
 };
 use egui_macroquad::macroquad::{color::Color, math::Vec2};
 use grid::Grid;
-use macroquad::time::get_fps;
+use macroquad::time::{get_fps, get_frame_time};
 use rayon::prelude::*;
 
 impl Map {
     pub fn update_state(&mut self, player: &Player) {
         self.block_percent.clear();
-
-
 
         // change simulation distance based on fps
         if self.settings.dynamic_simulation_distance {
@@ -21,6 +19,7 @@ impl Map {
                 self.settings.sim_distance =
                     (self.settings.sim_distance - 1).clamp(MIN_SIM_DISTANCE, self.size as i32);
                 println!("{}", self.settings.sim_distance);
+                
             }else if get_fps() > self.settings.min_fps + FPS_BUFFER && self.settings.sim_distance < self.size as i32  {
                 self.settings.sim_distance = self.settings.sim_distance + 1;
             }
@@ -74,6 +73,7 @@ impl Map {
 
         for point in pts {
             self.update_px(point.0, point.1, player);
+        
         }
         if self.realistic_fluid {
             self.move_fluids(player.x as i32, player.y as i32)
@@ -510,7 +510,7 @@ impl Map {
                 }
 
                 if fastrand::f32() > 0.999
-                    && self.entities.len() < (self.size.pow(2) / 6000) as usize
+                    && self.entities.len() < ((self.settings.sim_distance*2).pow(2) / 6000) as usize
                 {
                     self.spawn_entity(EntityType::Fish { air: 20.0 }, col as f32, row as f32);
                 }
