@@ -143,6 +143,10 @@ pub struct Player {
     pub respawn_pos: Vec2,
 
     #[savefile_ignore]
+    #[savefile_introspect_ignore]
+    pub settings_open: bool,
+
+    #[savefile_ignore]
     jump_height_timer: f32,
     #[savefile_ignore]
     craft_timer: f32,
@@ -177,6 +181,8 @@ impl Default for Player {
             view_port_cache: Rect::default(),
             battery: 100.0,
             charging: false,
+            settings_open: false,
+
         }
     }
 }

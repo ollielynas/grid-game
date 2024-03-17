@@ -101,6 +101,33 @@ async fn main() {
             .unwrap(),
         )
     };
+    let blur_material = if cfg!(target_family = "wasm") {
+        None
+    } else {
+        
+        Some(
+            load_material(
+                include_str!("./shader/vertex.glsl"),
+                include_str!("./shader/blur.glsl"),
+                MaterialParams {
+                    pipeline_params: PipelineParams {
+                        color_blend: Some(BlendState::new(
+                            Equation::Add,
+                            BlendFactor::Value(BlendValue::SourceAlpha),
+                            BlendFactor::OneMinusValue(BlendValue::SourceAlpha),
+                        )),
+                        ..Default::default()
+                    },
+                    uniforms: vec![
+                        ("textureSize".to_owned(), UniformType::Float2),
+                        ("canvasSize".to_owned(), UniformType::Float2),
+                    ],
+                    ..Default::default()
+                },
+            )
+            .unwrap(),
+        )
+    };
     let world_material = if cfg!(target_family = "wasm") {
         None
     } else {
@@ -237,6 +264,9 @@ async fn main() {
 
     let mut curr_window_size = (screen_width() as u32, screen_height() as u32);
     let mut rt = render_target(curr_window_size.0, curr_window_size.1);
+
+
+    
 
     loop {
         let new_window_size = (screen_width() as u32, screen_height() as u32);
@@ -408,8 +438,8 @@ async fn main() {
         }
 
         if let Some(ref light_material) = light_material {
-                gl_use_material(*light_material);
-                light_material.set_uniform("textureSize", (map.size as f32, map.size as f32));
+            gl_use_material(*light_material);
+            light_material.set_uniform("textureSize", (map.size as f32, map.size as f32));
         }
 
         draw_texture_ex(
@@ -445,7 +475,7 @@ async fn main() {
         let hit = physics::make_map_box(&map.grid, player.view_port_cache, false, 0.0, 0.0);
         hit.render();
 
-        if player.render_ui(&map) {
+        if player.render_ui(&mut map) {
             save_all(&player, &map);
             clear_background(BLACK);
             (map, player) = terminal().await;
@@ -455,6 +485,8 @@ async fn main() {
             texture.set_filter(FilterMode::Nearest);
             continue;
         };
+
+        
 
         player.get_player_box(0.0, 0.0).render();
 
@@ -552,8 +584,13 @@ async fn main() {
         // egui::end_frame();
 
         egui_macroquad::draw();
+    
+        next_frame().await;
 
-        next_frame().await
+        if map.settings.open {
+            map.settings.settings_ui(blur_material).await;
+        }
+
     }
 }
 

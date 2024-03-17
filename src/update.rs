@@ -18,9 +18,8 @@ impl Map {
             if get_fps() < self.settings.min_fps && self.settings.sim_distance > MIN_SIM_DISTANCE {
                 self.settings.sim_distance =
                     (self.settings.sim_distance - 1).clamp(MIN_SIM_DISTANCE, self.size as i32);
-                println!("{}", self.settings.sim_distance);
                 
-            }else if get_fps() > self.settings.min_fps + FPS_BUFFER && self.settings.sim_distance < self.size as i32  {
+            }else if get_fps() > self.settings.min_fps + FPS_BUFFER && self.settings.sim_distance < self.size as i32 + 20  {
                 self.settings.sim_distance = self.settings.sim_distance + 1;
             }
         }

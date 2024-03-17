@@ -1,4 +1,4 @@
-use std::{default, fmt::format, fs::{self, create_dir_all}};
+use std::{default, fmt::format, fs::{self, create_dir_all}, os::windows::fs::MetadataExt, time::SystemTime};
 
 // use egui::util::hash;
 use crate::{
@@ -9,21 +9,18 @@ use egui_macroquad::{egui::{util::hash, WidgetText}, macroquad::prelude::*};
 use egui_macroquad::{
     egui::{self, Align2, Color32, Id, RichText},
     macroquad::{
-        experimental::animation,
-        math::{vec2, Vec2},
-        miniquad::Context,
+        math::{Vec2},
         time::get_frame_time,
-        ui::{
-            hash, root_ui,
-            widgets::{self, Group, Popup},
-        },
+
         window::{screen_height, screen_width},
         Window,
     },
 };
+use chrono::Utc;
+use chrono::DateTime;
 
 impl Player {
-    pub fn render_ui(&mut self, map: &Map) -> bool {
+    pub fn render_ui(&mut self, map: &mut Map) -> bool {
         let delta = get_frame_time();
         // let hand_item = self.item_in_hand;
         let mut equip_item: Option<crate::player::Item> = None;
@@ -61,11 +58,27 @@ impl Player {
                 });
             egui::Window::new("")
                 .id(Id::new("bottom info"))
+                .default_open(false)
                 .anchor(Align2::LEFT_BOTTOM, [0.0, 0.0])
                 .show(egui_ctx, |ui| {
                     ui.label(&format!("FPS: {}", get_fps()));
                     ui.label(&format!("X / Y: {} {}", self.x, self.y));
                     ui.label(&format!("BIOME {}", map.biome));
+
+                    self.hover_ui = egui_ctx.is_pointer_over_area();
+                });
+            egui::Window::new("")
+                .id(Id::new("bottom right settings"))
+                // .default_open(default_open)
+                .anchor(Align2::RIGHT_BOTTOM, [0.0, 0.0])
+                .show(egui_ctx, |ui| {
+                    
+                    if ui.small_button("settings").clicked() {
+                        // self.settings_open = true;
+                        
+                        map.settings.open = true;
+
+                    }
 
                     self.hover_ui = egui_ctx.is_pointer_over_area();
                 });
@@ -218,6 +231,13 @@ pub async fn display_message(text: impl Into<WidgetText> + std::marker::Copy) {
     }
 }
 
+fn truncate(s: &str, max_chars: usize) -> &str {
+    match s.char_indices().nth(max_chars) {
+        None => s,
+        Some((idx, _)) => &s[..idx],
+    }
+}
+
 pub async fn terminal() -> (Map, Player) {
     let mut player = None;
     let mut map = None;
@@ -232,14 +252,30 @@ pub async fn terminal() -> (Map, Player) {
     let mut seed = fastrand::u64(10000..99999).to_string();
 
     let mut loadable_names: Vec<String> = vec![];
+    let mut file_sizes: Vec<u64> = vec![];
+    let mut file_dates: Vec<String> = vec![];
 
     if !cfg!(target_family = "wasm") {
         if let Err(error) = create_dir_all("saves/maps/") {
             println!("error {error}");
         }
+    
     for path in fs::read_dir("./saves/maps/").unwrap() {
+        
+        let metadata = path.as_ref().unwrap().metadata();
+
+        if let Ok(meta) = metadata {
+            if let Ok(created) = meta.created() {
+                let date = Into::<DateTime<Utc>>::into(created).format("%d/%m/%y");
+                file_dates.push(format!("{}", date));
+            }else {
+                file_dates.push("error".to_owned());
+            }
+            file_sizes.push(meta.file_size()/10000);
+        }
+
         loadable_names.push(
-            path.unwrap()
+            path.as_ref().unwrap()
                 .path()
                 .file_name()
                 .unwrap_or_default()
@@ -254,10 +290,16 @@ pub async fn terminal() -> (Map, Player) {
     let mut process_state = 0;
 
     loop {
+        clear_background(BLACK);
+
         egui_macroquad::ui(|egui_ctx| {
-            egui::Area::new("terminal")
+            egui::Window::new("terminal")
+                .collapsible(false)
+                .scroll2([false,true])
+                .fixed_size(egui_macroquad::egui::Vec2{y:screen_height(), x:screen_width()})
                 .anchor(Align2::LEFT_TOP, [0.0, 0.0])
                 .show(egui_ctx, |ui| {
+                    
                     match process_state {
                         0 => {
                             if ui.button("> Start Game!").clicked() {
@@ -368,8 +410,15 @@ pub async fn terminal() -> (Map, Player) {
                         3 => {
                             ui.label(RichText::new("Continue Previous Mission").size(25.0));
 
-                            for save in &loadable_names {
-                                if ui.button(format!("> {save}")).clicked() {
+                        
+                            let max_width = (screen_width() / 40.0) as usize;
+                            for (i, save) in loadable_names.iter().enumerate() {
+                                ui.horizontal(|ui| {
+                                let too_long = save.len() > max_width;
+                                let button_res = ui.button(format!("> {}{}",truncate(&(save.to_owned()+&" ".repeat(max_width)), max_width.max(4) - if too_long {3} else {0}),if too_long {"..."} else {""}));
+                                
+                                if button_res.clicked() 
+                                {
                                     let mut final_player = Player::load(&save);
                                     let mut final_map = Map::load(&save);
                                     let respawn_point =
@@ -386,7 +435,12 @@ pub async fn terminal() -> (Map, Player) {
                                     map = Some(final_map);
                                     player = Some(final_player);
                                 }
+                                if too_long {let _ = &button_res.on_hover_text(RichText::new(save).background_color(Color32::BLACK).color(Color32::YELLOW));}
+                                ui.label(RichText::new(format!("{}", file_dates[i])).italics().color(Color32::GRAY));
+                                ui.label(RichText::new(format!(" {}kb", file_sizes[i])).italics().color(Color32::GRAY));
+                            });
                             }
+                            ui.separator();
                             if ui.button("> Back").clicked() {
                                 process_state = 1;
                             }
@@ -398,7 +452,6 @@ pub async fn terminal() -> (Map, Player) {
                 });
         });
 
-        clear_background(BLACK);
 
         egui_macroquad::draw();
 
@@ -414,3 +467,5 @@ pub async fn terminal() -> (Map, Player) {
         player.unwrap_or_default(),
     );
 }
+
+
