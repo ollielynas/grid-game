@@ -27,11 +27,10 @@ impl Map {
 
         let pts = if self.settings.sim_distance < self.size as i32 {
             [
-                vec![
-                    0;
+                (
+                    0..
                     (0.5 * ((self.settings.sim_distance*2).pow(2)) as f32) as usize
-                ]
-                .par_iter()
+        )
                 .map(|_| {
                     (
                         (fastrand::i32(
@@ -47,8 +46,7 @@ impl Map {
                     )
                 })
                 .collect::<Vec<(i32, i32)>>(),
-                vec![0; self.settings.sim_distance as usize]
-                    .par_iter()
+                (0..self.settings.sim_distance as usize)
                     .map(|_| {
                         (
                             fastrand::i32(2..self.size as i32 - 2),
@@ -59,8 +57,7 @@ impl Map {
             ]
             .concat()
         } else {
-            vec![0; (0.5 * (self.size as f32).powi(2)) as usize]
-                .par_iter()
+            (0..(0.5 * (self.size as f32).powi(2)) as usize)
                 .map(|_| {
                     (
                         fastrand::i32(2..self.size as i32 - 2),

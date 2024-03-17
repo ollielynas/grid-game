@@ -271,7 +271,7 @@ pub async fn terminal() -> (Map, Player) {
             }else {
                 file_dates.push("error".to_owned());
             }
-            file_sizes.push(meta.file_size()/10000);
+            file_sizes.push(meta.file_size()/1000);
         }
 
         loadable_names.push(
