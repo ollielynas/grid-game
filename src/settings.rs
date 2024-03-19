@@ -24,16 +24,20 @@ impl Default for Settings {
 
 
     fn default() -> Self {
+
+        let mut settings =  Settings {
+            mobile: false,
+            sim_distance: MIN_SIM_DISTANCE +1,
+            min_fps: 25,
+            dynamic_simulation_distance: true,
+            open: false,
+        };
         
-        let mut settings:Settings = load_file("saves/user_settings.bin", SAVEFILE_VERSION).unwrap_or(
-            Settings {
-                mobile: false,
-                sim_distance: MIN_SIM_DISTANCE +1,
-                min_fps: 25,
-                dynamic_simulation_distance: true,
-                open: false,
-            }
-        );
+        if cfg!(not(target_family="wasm")) {
+        if let Ok(file) = load_file("saves/user_settings.bin", SAVEFILE_VERSION) {
+            settings = file;
+        }
+        }
 
         settings.sim_distance = settings.sim_distance.max(MIN_SIM_DISTANCE);
 

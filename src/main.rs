@@ -9,10 +9,9 @@ mod update;
 mod egui_style;
 mod physics;
 
-use egui_macroquad::{egui::{self, epaint::text::cursor, FontData, FontDefinitions, FontFamily}, macroquad::{self, miniquad::{log, Pipeline}, prelude::*}};
+use egui_macroquad::{egui::{FontData, FontDefinitions, FontFamily}, macroquad::{self, miniquad::{log, Pipeline}, prelude::*}};
 use egui_style::robot_style;
 use entity::{BoidData, EntityType};
-use macroquad::miniquad::Texture;
 // mod profiling;
 mod craft;
 use crate::craft::craft;
@@ -53,23 +52,25 @@ async fn main() {
         error!("Panic!");
     });*/
 
-    env::set_var("RUST_BACKTRACE", "1");
+    
     
     if cfg!(target_family="wasm") {
         set_hook(Box::new(|info| {
             if let Some(s) = info.payload().downcast_ref::<&str>() {
-                error!("{}", format!("Panic Occured! {s:?}"));
+                error!("{}", format!("Panic Occurred! {s:?}"));
             } else {
-                error!("Panic Occured! (No Payload)");
+                error!("Panic Occurred! (No Payload)");
             }
 
             if let Some(location) = info.location() {
-                error!("Panic occured in file '{}' at line '{}'", location.file(), location.line());
+                error!("Panic occurred in file '{}' at line '{}'", location.file(), location.line());
             }
 
             error!("{:?}", Backtrace::new());
         }));
     }
+
+    //  panic!("test");
 
     let mut save_timer = 0.0;
 

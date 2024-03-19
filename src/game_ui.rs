@@ -1,23 +1,26 @@
-use std::{default, fmt::format, fs::{self, create_dir_all}, os::windows::fs::MetadataExt, time::SystemTime};
+use std::{
+    fs::{self, create_dir_all},
+};
 
 // use egui::util::hash;
 use crate::{
     map::Map,
     player::{self, Inventory, Item, Player},
 };
-use egui_macroquad::{egui::{util::hash, WidgetText}, macroquad::prelude::*};
+use chrono::DateTime;
+use chrono::Utc;
 use egui_macroquad::{
     egui::{self, Align2, Color32, Id, RichText},
     macroquad::{
-        math::{Vec2},
+        math::Vec2,
         time::get_frame_time,
-
         window::{screen_height, screen_width},
-        Window,
     },
 };
-use chrono::Utc;
-use chrono::DateTime;
+use egui_macroquad::{
+    egui::{util::hash, WidgetText},
+    macroquad::prelude::*,
+};
 
 impl Player {
     pub fn render_ui(&mut self, map: &mut Map) -> bool {
@@ -38,7 +41,6 @@ impl Player {
         egui_macroquad::ui(|egui_ctx| {
             egui::Area::new("info")
                 .anchor(Align2::LEFT_TOP, [5.0, 5.0])
-                
                 .show(egui_ctx, |ui| {
                     ui.horizontal(|ui| {
                         ui.label(&format!("INTEGRITY: {}%", self.health / 2.0 * 10.0));
@@ -72,12 +74,10 @@ impl Player {
                 // .default_open(default_open)
                 .anchor(Align2::RIGHT_BOTTOM, [0.0, 0.0])
                 .show(egui_ctx, |ui| {
-                    
                     if ui.small_button("settings").clicked() {
                         // self.settings_open = true;
-                        
-                        map.settings.open = true;
 
+                        map.settings.open = true;
                     }
 
                     self.hover_ui = egui_ctx.is_pointer_over_area();
@@ -88,7 +88,7 @@ impl Player {
                 .show(egui_ctx, |ui| {
                     if ui.button("LEAVE MISION").clicked() {
                         // self.save();
-                        
+
                         return_value = true;
                     }
                     if ui
@@ -195,8 +195,6 @@ impl Player {
     }
 }
 
-
-
 fn color_command(s: &str) -> Color32 {
     match s {
         "HELP" => Color32::LIGHT_BLUE,
@@ -208,9 +206,7 @@ fn color_command(s: &str) -> Color32 {
 /// note to self: all terminal commands should be full caps
 
 pub async fn splash() {
-    loop {
-        
-    }
+    loop {}
 }
 
 pub async fn display_message(text: impl Into<WidgetText> + std::marker::Copy) {
@@ -223,7 +219,7 @@ pub async fn display_message(text: impl Into<WidgetText> + std::marker::Copy) {
                 .show(egui_ctx, |ui| {
                     ui.label(text);
                 });
-            });
+        });
 
         egui_macroquad::draw();
 
@@ -242,8 +238,11 @@ pub async fn terminal() -> (Map, Player) {
     let mut player = None;
     let mut map = None;
 
-
-    let mut name = format!("Planet-{}{}",fastrand::u16(100..=999),fastrand::char('a'..'z'));
+    let mut name = format!(
+        "Planet-{}{}",
+        fastrand::u16(100..=999),
+        fastrand::char('a'..'z')
+    );
     let mut size = "300".to_string();
     let mut size_int = 300;
     let mut creative = false;
@@ -255,36 +254,39 @@ pub async fn terminal() -> (Map, Player) {
     let mut file_sizes: Vec<u64> = vec![];
     let mut file_dates: Vec<String> = vec![];
 
-    if !cfg!(target_family = "wasm") {
+    if !cfg!(not(target_family = "wasm")) {
         if let Err(error) = create_dir_all("saves/maps/") {
             println!("error {error}");
         }
-    
-    for path in fs::read_dir("./saves/maps/").unwrap() {
-        
-        let metadata = path.as_ref().unwrap().metadata();
 
-        if let Ok(meta) = metadata {
-            if let Ok(created) = meta.created() {
-                let date = Into::<DateTime<Utc>>::into(created).format("%d/%m/%y");
-                file_dates.push(format!("{}", date));
-            }else {
-                file_dates.push("error".to_owned());
+        for path in fs::read_dir("./saves/maps/").unwrap() {
+            let metadata = path.as_ref().unwrap().metadata();
+
+            if let Ok(meta) = metadata {
+                if let Ok(created) = meta.created() {
+                    let date = Into::<DateTime<Utc>>::into(created).format("%d/%m/%y");
+                    file_dates.push(format!("{}", date));
+                } else {
+                    file_dates.push("error".to_owned());
+                }
+                if cfg!(target_os = "windows") {
+                    file_sizes.push(meta.len() / 1000);
+                    // meta.len()
+                }
             }
-            file_sizes.push(meta.file_size()/1000);
-        }
 
-        loadable_names.push(
-            path.as_ref().unwrap()
-                .path()
-                .file_name()
-                .unwrap_or_default()
-                .to_str()
-                .unwrap_or_default()
-                .to_owned()
-                .replace(".map_save", ""),
-        );
-    }
+            loadable_names.push(
+                path.as_ref()
+                    .unwrap()
+                    .path()
+                    .file_name()
+                    .unwrap_or_default()
+                    .to_str()
+                    .unwrap_or_default()
+                    .to_owned()
+                    .replace(".map_save", ""),
+            );
+        }
     }
 
     let mut process_state = 0;
@@ -295,11 +297,13 @@ pub async fn terminal() -> (Map, Player) {
         egui_macroquad::ui(|egui_ctx| {
             egui::Window::new("terminal")
                 .collapsible(false)
-                .scroll2([false,true])
-                .fixed_size(egui_macroquad::egui::Vec2{y:screen_height(), x:screen_width()})
+                .scroll2([false, true])
+                .fixed_size(egui_macroquad::egui::Vec2 {
+                    y: screen_height(),
+                    x: screen_width(),
+                })
                 .anchor(Align2::LEFT_TOP, [0.0, 0.0])
                 .show(egui_ctx, |ui| {
-                    
                     match process_state {
                         0 => {
                             if ui.button("> Start Game!").clicked() {
@@ -311,10 +315,10 @@ pub async fn terminal() -> (Map, Player) {
                                 process_state = 2;
                             }
                             if !cfg!(target_family = "wasm") {
-                            if ui.button("> Load World").clicked() {
-                                process_state = 3;
+                                if ui.button("> Load World").clicked() {
+                                    process_state = 3;
+                                }
                             }
-                        }
                             if ui.button("> Debug World").clicked() {
                                 let mut final_player = Player::new("debug".to_owned());
                                 let mut final_map = Map::new_square(200, "debug".to_owned());
@@ -323,6 +327,11 @@ pub async fn terminal() -> (Map, Player) {
                                 final_player.inventory = Inventory::creative();
                                 let respawn_point =
                                     Vec2::new(final_map.size as f32 / 2.0 - 1.0, 4.0);
+
+
+                                if final_map.size < 1000 {
+                                    final_map.settings.sim_distance = final_map.size as i32 + 30;
+                                }
 
                                 final_player.x = respawn_point.x;
                                 final_player.y = respawn_point.y;
@@ -410,35 +419,54 @@ pub async fn terminal() -> (Map, Player) {
                         3 => {
                             ui.label(RichText::new("Continue Previous Mission").size(25.0));
 
-                        
                             let max_width = (screen_width() / 40.0) as usize;
                             for (i, save) in loadable_names.iter().enumerate() {
                                 ui.horizontal(|ui| {
-                                let too_long = save.len() > max_width;
-                                let button_res = ui.button(format!("> {}{}",truncate(&(save.to_owned()+&" ".repeat(max_width)), max_width.max(4) - if too_long {3} else {0}),if too_long {"..."} else {""}));
-                                
-                                if button_res.clicked() 
-                                {
-                                    let mut final_player = Player::load(&save);
-                                    let mut final_map = Map::load(&save);
-                                    let respawn_point =
-                                    Vec2::new(final_map.size as f32 / 2.0 - 1.0, 4.0);
+                                    let too_long = save.len() > max_width;
+                                    let button_res = ui.button(format!(
+                                        "> {}{}",
+                                        truncate(
+                                            &(save.to_owned() + &" ".repeat(max_width)),
+                                            max_width.max(4) - if too_long { 3 } else { 0 }
+                                        ),
+                                        if too_long { "..." } else { "" }
+                                    ));
 
-                                final_player.x = respawn_point.x;
-                                final_player.y = respawn_point.y;
+                                    if button_res.clicked() {
+                                        let mut final_player = Player::load(&save);
+                                        let mut final_map = Map::load(&save);
+                                        let respawn_point =
+                                            Vec2::new(final_map.size as f32 / 2.0 - 1.0, 4.0);
 
-                                final_player.respawn_pos = respawn_point;
-                                for ((row, col), _) in final_map.grid.indexed_iter() {
-                                    final_map.update_texture_px.insert((row, col));
-                                }
-                                    final_map.update_image();
-                                    map = Some(final_map);
-                                    player = Some(final_player);
-                                }
-                                if too_long {let _ = &button_res.on_hover_text(RichText::new(save).background_color(Color32::BLACK).color(Color32::YELLOW));}
-                                ui.label(RichText::new(format!("{}", file_dates[i])).italics().color(Color32::GRAY));
-                                ui.label(RichText::new(format!(" {}kb", file_sizes[i])).italics().color(Color32::GRAY));
-                            });
+                                        final_player.x = respawn_point.x;
+                                        final_player.y = respawn_point.y;
+
+                                        final_player.respawn_pos = respawn_point;
+                                        for ((row, col), _) in final_map.grid.indexed_iter() {
+                                            final_map.update_texture_px.insert((row, col));
+                                        }
+                                        final_map.update_image();
+                                        map = Some(final_map);
+                                        player = Some(final_player);
+                                    }
+                                    if too_long {
+                                        let _ = &button_res.on_hover_text(
+                                            RichText::new(save)
+                                                .background_color(Color32::BLACK)
+                                                .color(Color32::YELLOW),
+                                        );
+                                    }
+                                    ui.label(
+                                        RichText::new(format!("{}", file_dates[i]))
+                                            .italics()
+                                            .color(Color32::GRAY),
+                                    );
+                                    ui.label(
+                                        RichText::new(format!(" {}kb", file_sizes[i]))
+                                            .italics()
+                                            .color(Color32::GRAY),
+                                    );
+                                });
                             }
                             ui.separator();
                             if ui.button("> Back").clicked() {
@@ -451,7 +479,6 @@ pub async fn terminal() -> (Map, Player) {
                     }
                 });
         });
-
 
         egui_macroquad::draw();
 
@@ -467,5 +494,3 @@ pub async fn terminal() -> (Map, Player) {
         player.unwrap_or_default(),
     );
 }
-
-

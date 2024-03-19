@@ -406,6 +406,11 @@ impl Map {
 
     /// makes a new square map of the given `usize`
     pub fn new_square(size: usize, name: String) -> Map {
+
+        let mut settings = Settings::default();
+
+        settings.dynamic_simulation_distance = size > 600;
+
         let grid = Grid::from_vec(
             vec![Pixel::Air;size.pow(2)], size);
 
@@ -423,7 +428,7 @@ impl Map {
             sky_light: vec![0;size],
             block_percent: FxHashMap::default(),
             biome: Biome::Surface,
-            settings: Settings::default(),
+            settings,
         }
     }
 
@@ -436,6 +441,7 @@ impl Map {
     /// makes a square of any malarial in center of map
     pub fn make_square(&mut self, pixel: Pixel) {
         let third = (self.size / 3) as usize;
+
 
         for ((row, col), i) in self.grid.indexed_iter_mut() {
             *i = if row > third && row < third * 2 && col > third && col < third * 2 {
