@@ -70,8 +70,8 @@ pub fn robot_style() -> Style {
                     expansion: EXPANSION,
                 },
                 open: WidgetVisuals {
-                    bg_fill: Color32::from_rgba_unmultiplied(255, 255, 255, 255),
-                    weak_bg_fill: Color32::from_rgba_unmultiplied(215, 215, 255, 225),
+                    bg_fill: Color32::from_rgba_unmultiplied(255, 255, 255, 0),
+                    weak_bg_fill: Color32::from_rgba_unmultiplied(215, 215, 255, 0),
                     bg_stroke: outline,
                     rounding: Rounding::same(STROKE_SIZE),
                     fg_stroke:Stroke { width: 3.0, color: Color32::WHITE },

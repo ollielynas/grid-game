@@ -1,10 +1,10 @@
 
 
 use core::fmt;
-use std::fmt::Display;
+use std::collections::HashMap;
+use std::{collections::HashSet, fmt::Display};
 use std::fs::create_dir_all;
-use rustc_hash::FxHashMap;
-use rustc_hash::FxHashSet;
+
 
 use grid::*;
 use egui_macroquad::{macroquad::{
@@ -235,7 +235,7 @@ impl MapSave {
 pub struct Map {
     pub grid: Grid<Pixel>,
     pub size: u32,
-    pub update_texture_px: FxHashSet::<(usize, usize)>,
+    pub update_texture_px: HashSet::<(usize, usize)>,
     pub image: Image,
     pub light_mask: Image,
     pub entities: Vec<Entity>,
@@ -244,7 +244,7 @@ pub struct Map {
     pub detected_fluids: Grid<bool>,
     pub realistic_fluid: bool,
     pub sky_light: Vec<usize>,
-    pub block_percent: FxHashMap<Pixel, i16>,
+    pub block_percent: HashMap<Pixel, i16>,
     pub biome: Biome,
     pub settings: Settings,
     // pub heatmap: Image,
@@ -417,7 +417,7 @@ impl Map {
         Map {
             grid,
             size: size as u32,
-            update_texture_px: FxHashSet::default(),
+            update_texture_px: HashSet::default(),
             image: Image::gen_image_color(size as u16, size as u16, WHITE),
             light_mask: Image::gen_image_color(size as u16, size as u16, Color { r: 0.0, g: 0.0, b: 0.0, a: 0.3 }),
             entities: vec![],
@@ -426,7 +426,7 @@ impl Map {
             name,
             realistic_fluid: true,
             sky_light: vec![0;size],
-            block_percent: FxHashMap::default(),
+            block_percent: HashMap::default(),
             biome: Biome::Surface,
             settings,
         }

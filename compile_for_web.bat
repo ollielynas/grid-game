@@ -1,7 +1,7 @@
-rem cargo build --target wasm32-unknown-unknown -r
+cargo build --target wasm32-unknown-unknown -r
 
-rem ROBOCOPY target\wasm32-unknown-unknown\release web\ *.wasm
+ROBOCOPY target\wasm32-unknown-unknown\release web\ *.wasm
 
-cargo build --target wasm32-unknown-unknown
+rem cargo build --target wasm32-unknown-unknown
 
-ROBOCOPY target\wasm32-unknown-unknown\debug web\ *.wasm
+rem ROBOCOPY target\wasm32-unknown-unknown\debug web\ *.wasm

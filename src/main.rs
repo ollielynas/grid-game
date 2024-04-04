@@ -51,7 +51,7 @@ async fn main() {
     /*set_panic_handler(|msg, backtrace| async move {
         error!("Panic!");
     });*/
-
+    
     
     
     if cfg!(target_family="wasm") {
@@ -69,7 +69,6 @@ async fn main() {
             error!("{:?}", Backtrace::new());
         }));
     }
-
     //  panic!("test");
 
     let mut save_timer = 0.0;

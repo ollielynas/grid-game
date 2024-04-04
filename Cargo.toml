@@ -10,7 +10,6 @@ bytemuck = "1.9"
 # egui = { version = "0.26.0"}
 # egui-macroquad = "0.15.0"
 fastrand = "2.0.1"
-gaussian_blur = "0.1.1"
 grid = "0.13.0"
 # macroquad = "0.4.4"
 perlin2d = "0.2.6"
@@ -20,15 +19,12 @@ lazy_static = "1.4.0"
 strum = "0.26.1"
 strum_macros = "0.26.1"
 rayon = "1.8.1"
-console_error_panic_hook = "0.1.7"
 egui-macroquad = "0.15.0"
 macroquad = { "version" = "0.3.26", features = ["backtrace"]}
 quad-url = "0.1.1"
 backtrace = "0.3.69"
-rustc-hash = "1.1.0"
-chrono = "0.4.35"
+# chrono = "0.4.35"
 # egui = "0.26.2"
-
 
 [profile.release]
 codegen-units = 1

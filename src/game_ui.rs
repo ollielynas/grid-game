@@ -7,8 +7,7 @@ use crate::{
     map::Map,
     player::{self, Inventory, Item, Player},
 };
-use chrono::DateTime;
-use chrono::Utc;
+
 use egui_macroquad::{
     egui::{self, Align2, Color32, Id, RichText},
     macroquad::{
@@ -254,7 +253,7 @@ pub async fn terminal() -> (Map, Player) {
     let mut file_sizes: Vec<u64> = vec![];
     let mut file_dates: Vec<String> = vec![];
 
-    if !cfg!(not(target_family = "wasm")) {
+    if !cfg!(target_family = "wasm") {
         if let Err(error) = create_dir_all("saves/maps/") {
             println!("error {error}");
         }
@@ -264,7 +263,8 @@ pub async fn terminal() -> (Map, Player) {
 
             if let Ok(meta) = metadata {
                 if let Ok(created) = meta.created() {
-                    let date = Into::<DateTime<Utc>>::into(created).format("%d/%m/%y");
+                    // let date = Into::<DateTime<Utc>>::into(created).format("%d/%m/%y");
+                    let date = "";
                     file_dates.push(format!("{}", date));
                 } else {
                     file_dates.push("error".to_owned());
